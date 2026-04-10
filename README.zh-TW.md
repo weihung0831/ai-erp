@@ -6,7 +6,7 @@
 
 ## 專案狀態
 
-**Design phase。** Laravel 專案尚未 scaffold，目前 repo 僅包含設計文件、規格書與 UI design system。實作將從 Phase 1（[Chat-to-query 後端](docs/spec/01-phase1-backend.md)）開始。
+**Design phase。** Laravel 專案尚未 scaffold，目前 repo 包含設計文件、架構、規格書、UI design system 與已解決問題知識庫。實作依照 [CLAUDE.md](CLAUDE.md) 列出的開發順序進行：從 [00 元件庫](docs/spec/00-component-library.md) 開始，接著 [01 Phase 1 後端](docs/spec/01-phase1-backend.md)、[02 Phase 1 前端](docs/spec/02-phase1-frontend.md)，依序做到 Phase 3。
 
 ## 這是什麼？
 
@@ -52,6 +52,7 @@
 - [設計模式](docs/design/design-pattern.md) — Repository、Service、Factory、DTO 等
 - [UI 設計規範](docs/design/ui-design-spec.md) — 元件視覺規範、dark mode、動畫
 - [元件庫](docs/spec/00-component-library.md) — 42 個 Blade Component 定義
+- [已解決問題知識庫](docs/solutions/) — 過往 bug、best practice、workflow pattern，按 category 組織，frontmatter 含 `module`、`tags`、`problem_type`
 
 ## 快速開始
 
@@ -70,7 +71,8 @@ git submodule update --init --recursive
 1. [設計文件](docs/design/ai-erp-platform.md) — 做什麼、為什麼做
 2. [系統架構](docs/architecture/system-architecture.md) — 模組、資料庫、API
 3. [設計模式](docs/design/design-pattern.md) — **開始寫程式前必讀**
-4. [Phase 1 後端規格](docs/spec/01-phase1-backend.md) — 第一個實作目標
+4. [UI 設計規範](docs/design/ui-design-spec.md) — 元件視覺規範、dark mode、動畫（元件庫的依據）
+5. [元件庫規格](docs/spec/00-component-library.md) — 第一個實作目標，之後依照 [CLAUDE.md](CLAUDE.md) 所列的 spec 開發順序進行
 
 ### 預計技術棧（實作開始時需要）
 
