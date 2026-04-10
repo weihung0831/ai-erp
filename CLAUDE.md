@@ -10,26 +10,92 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - **禁止擅自 commit 或 push**，所有 commit 和 push 操作必須經過使用者明確同意後才能執行
 
+## 設計文件為唯一真實來源
+
+- `docs/design/ai-erp-platform.md` 已 approved，是本專案的唯一真實來源，不得擅自偏離
+- 回答架構 / 流程 / 資料結構問題前，先讀對應的 `docs/spec/*.md` 或 `docs/architecture/system-architecture.md`，不要憑記憶作答
+- 若發現 spec 與程式碼衝突，先回報使用者，不要自行「修正」
+
 ## 專案概述
 
-AI ERP 系統，目前處於初始建置階段。
+AI ERP 平台，讓客戶用對話建構和查詢 ERP 系統。團隊本身是 ERP 開發公司，本產品將人工開發工作產品化。
+
+## 目前狀態
+
+**Design phase** — 尚未 scaffold Laravel。目前 repo 只有 design docs、spec、DESIGN.md。沒有 `app/`、`composer.json`、`artisan`。回答問題或修改檔案前，先 `ls` 或 `Glob` 確認目錄存在，不要假設 Controller / Service / Repository 已存在。
+
+## 技術棧
+
+| 層級 | 技術 |
+|------|------|
+| Backend | PHP + Laravel（純 API，回傳 JSON） |
+| Database | MySQL（DB-per-tenant 多租戶隔離） |
+| AI | OpenAI GPT-4o + function calling |
+| Frontend | Blade + Alpine.js + Axios（同一 Laravel 專案內前後端分離） |
+| UI 設計 | Claude DESIGN.md（根目錄 `DESIGN.md`） |
+| Auth | Laravel Sanctum（API token），OAuth2 未來再導入 |
+| Cache | Redis（LLM 回應快取，需支援 tag） |
+
+## 架構要點
+
+- **前後端分離：** `Controllers/Api/` 回傳 JSON 處理業務邏輯，`Controllers/Web/` 只回傳 Blade view，不碰資料庫
+- **DB-per-tenant：** 每個客戶獨立 MySQL DB，主資料庫存平台運營資料
+- **API-first：** Blade 頁面透過 Axios 呼叫自己的 `/api/*` 端點
+- **Blade 元件化：** 所有 UI 用 `<x-chat.bubble>` 等巢狀命名空間的 Blade Component
+- **信心度分層：** Chat-to-query 的核心機制——高（> 95%）直接回答、中（70-95%）附提示、低（< 70%）不回答改引導釐清
+
+## 設計模式
+
+開發前必讀 [docs/design/design-pattern.md](docs/design/design-pattern.md)，關鍵規則：
+- Thin Controller：Controller 只接 request → 呼叫 Service → 回傳 response
+- Repository Pattern：資料存取封裝在 Repository，不直接操作 Model
+- Factory 統一用 Service Provider 綁定，不用 static method
+- DTO 和 FormRequest 分離：FormRequest 驗證請求，DTO 傳遞資料
+- Web Controller 不呼叫 Service，不操作資料庫
+
+## 文件索引
+
+### 設計
+- [設計文件](docs/design/ai-erp-platform.md) — 產品設計（已核准）
+- [設計模式](docs/design/design-pattern.md) — 後端 9 種 + 前端 2 種 pattern
+- [UI 設計規範](docs/design/ui-design-spec.md) — 元件視覺規範、dark mode、動畫
+
+### 架構
+- [系統架構](docs/architecture/system-architecture.md) — 模組、資料庫、API、目錄結構
+
+### 規格書（依開發順序）
+- [00 元件庫](docs/spec/00-component-library.md) — 42 個 Blade Component 定義
+- [01 Phase 1 後端](docs/spec/01-phase1-backend.md) — Chat-to-query API
+- [02 Phase 1 前端](docs/spec/02-phase1-frontend.md) — 聊天介面頁面
+- [03 Phase 2 後端](docs/spec/03-phase2-backend.md) — Chat-to-build API
+- [04 Phase 2 前端](docs/spec/04-phase2-frontend.md) — 建構介面頁面
+- [05 Phase 3 後端](docs/spec/05-phase3-backend.md) — SaaS + 知識回饋
+- [06 Phase 3 前端](docs/spec/06-phase3-frontend.md) — 註冊、管理後台
 
 ## Git Submodules
 
-- `awesome-design-md/` — 來自 [VoltAgent/awesome-design-md](https://github.com/VoltAgent/awesome-design-md) 的 DESIGN.md 集合，供 AI agent 產生一致 UI 時作為設計規範參考
-
-### Submodule 常用指令
+- `awesome-design-md/` — [VoltAgent/awesome-design-md](https://github.com/VoltAgent/awesome-design-md) 的 DESIGN.md 集合（參考用，已選定 Claude 風格並下載到根目錄 `DESIGN.md`）
 
 ```bash
-# clone 後初始化 submodule
 git submodule update --init --recursive
-
-# 更新 submodule 到最新 commit
-git submodule update --remote awesome-design-md
 ```
 
-## 使用 DESIGN.md
+## Skill routing
 
-`awesome-design-md/design-md/{brand}/README.md` 包含各品牌的設計系統。每份 DESIGN.md 遵循 [Google Stitch 格式](https://stitch.withgoogle.com/docs/design-md/format/)，涵蓋：色彩、字型、元件樣式、佈局、陰影、響應式行為、Agent Prompt Guide。
+When the user's request matches an available skill, ALWAYS invoke it using the Skill
+tool as your FIRST action. Do NOT answer directly, do NOT use other tools first.
+The skill has specialized workflows that produce better results than ad-hoc answers.
 
-使用方式：將目標品牌的 DESIGN.md 複製到專案根目錄，AI agent 即可依據該設計規範產生 UI。
+Key routing rules:
+- Product ideas, "is this worth building", brainstorming → invoke office-hours
+- Bugs, errors, "why is this broken", 500 errors → invoke investigate
+- Ship, deploy, push, create PR → invoke ship
+- QA, test the site, find bugs → invoke qa
+- Code review, check my diff → invoke review
+- Update docs after shipping → invoke document-release
+- Weekly retro → invoke retro
+- Design system, brand → invoke design-consultation
+- Visual audit, design polish → invoke design-review
+- Architecture review → invoke plan-eng-review
+- Save progress, checkpoint, resume → invoke checkpoint
+- Code quality, health check → invoke health
