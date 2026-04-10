@@ -72,6 +72,9 @@ AI ERP 平台，讓客戶用對話建構和查詢 ERP 系統。團隊本身是 E
 - [05 Phase 3 後端](docs/spec/05-phase3-backend.md) — SaaS + 知識回饋
 - [06 Phase 3 前端](docs/spec/06-phase3-frontend.md) — 註冊、管理後台
 
+### 已解決問題知識庫
+- `docs/solutions/` — 過往問題的解決方案（bug、best practice、workflow pattern），按 category 組織，frontmatter 含 `module`、`tags`、`problem_type`。實作或除錯進入已有紀錄的領域時可參考。
+
 ## Git Submodules
 
 - `awesome-design-md/` — [VoltAgent/awesome-design-md](https://github.com/VoltAgent/awesome-design-md) 的 DESIGN.md 集合（參考用，已選定 Claude 風格並下載到根目錄 `DESIGN.md`）
