@@ -286,7 +286,201 @@ final class QueryEngineTest extends TestCase
         $this->assertSame(0, $this->executor->callCount());
     }
 
-    public function test_system_prompt_contains_schema_tables_and_function_definition(): void
+    public function test_table_query_happy_path_returns_table_with_headers_and_rows_as_list_of_list(): void
+    {
+        $this->llm->queueResponse(new LlmResponse(
+            functionName: 'execute_query_table',
+            functionArguments: [
+                'sql' => 'SELECT name, total, overdue_days FROM customers WHERE overdue_days > 60',
+                'headers' => ['客戶名稱', '應收金額', '逾期天數'],
+                'reply_template' => '以下是應收帳款超過 60 天的 {count} 位客戶',
+                'confidence' => 0.93,
+            ],
+            content: null,
+            tokensUsed: 1200,
+        ));
+        $this->executor->queueResult([
+            ['name' => '王氏商行', 'total' => 125000, 'overdue_days' => 78],
+            ['name' => '林氏企業', 'total' => 98000, 'overdue_days' => 65],
+        ]);
+
+        $result = $this->engine->handle(new ChatQueryInput(
+            message: '應收帳款超過 60 天的客戶有哪些',
+            tenantId: 1,
+        ));
+
+        $this->assertSame(ChatResponseType::Table, $result->type);
+        $this->assertSame('以下是應收帳款超過 60 天的 2 位客戶', $result->reply);
+        $this->assertSame(0.93, $result->confidence);
+        $this->assertSame(['客戶名稱', '應收金額', '逾期天數'], $result->data['headers']);
+        // rows 是 list of list，cell 順序對齊 headers
+        $this->assertSame([
+            ['王氏商行', 125000, 78],
+            ['林氏企業', 98000, 65],
+        ], $result->data['rows']);
+        $this->assertFalse($result->data['truncated']);
+        $this->assertSame('SELECT name, total, overdue_days FROM customers WHERE overdue_days > 60', $result->sql);
+        $this->assertSame(1200, $result->tokensUsed);
+        $this->assertSame(1, $this->executor->callCount());
+    }
+
+    public function test_table_query_rows_exceeding_cap_are_truncated(): void
+    {
+        $rows = [];
+        for ($i = 1; $i <= 150; $i++) {
+            $rows[] = ['name' => "客戶{$i}", 'amount' => $i * 1000];
+        }
+
+        $this->llm->queueResponse(new LlmResponse(
+            functionName: 'execute_query_table',
+            functionArguments: [
+                'sql' => 'SELECT name, amount FROM customers',
+                'headers' => ['客戶名稱', '金額'],
+                'reply_template' => '共 {count} 筆',
+                'confidence' => 0.9,
+            ],
+            content: null,
+            tokensUsed: 500,
+        ));
+        $this->executor->queueResult($rows);
+
+        $result = $this->engine->handle(new ChatQueryInput(message: '列出所有客戶', tenantId: 1));
+
+        $this->assertSame(ChatResponseType::Table, $result->type);
+        $this->assertCount(100, $result->data['rows']);
+        $this->assertTrue($result->data['truncated']);
+        $this->assertSame('共 100 筆', $result->reply);
+        // 截斷後保留的是前 100 筆，第 1 筆是「客戶1」
+        $this->assertSame(['客戶1', 1000], $result->data['rows'][0]);
+        $this->assertSame(['客戶100', 100000], $result->data['rows'][99]);
+    }
+
+    public function test_table_query_empty_rows_returns_fallback_reply_and_preserves_headers(): void
+    {
+        $this->llm->queueResponse(new LlmResponse(
+            functionName: 'execute_query_table',
+            functionArguments: [
+                'sql' => 'SELECT name, total FROM customers WHERE overdue_days > 999',
+                'headers' => ['客戶名稱', '金額'],
+                'reply_template' => '以下是 {count} 位客戶',
+                'confidence' => 0.95,
+            ],
+            content: null,
+            tokensUsed: 400,
+        ));
+        $this->executor->queueResult([]);
+
+        $result = $this->engine->handle(new ChatQueryInput(message: '逾期超過 999 天', tenantId: 1));
+
+        $this->assertSame(ChatResponseType::Table, $result->type);
+        $this->assertSame('目前沒有符合條件的資料', $result->reply);
+        $this->assertSame(['客戶名稱', '金額'], $result->data['headers']);
+        $this->assertSame([], $result->data['rows']);
+        $this->assertFalse($result->data['truncated']);
+    }
+
+    public function test_table_query_empty_headers_from_llm_returns_error(): void
+    {
+        $this->llm->queueResponse(new LlmResponse(
+            functionName: 'execute_query_table',
+            functionArguments: [
+                'sql' => 'SELECT name FROM customers',
+                'headers' => [],
+                'reply_template' => '共 {count} 筆',
+                'confidence' => 0.9,
+            ],
+            content: null,
+            tokensUsed: 100,
+        ));
+
+        $result = $this->engine->handle(new ChatQueryInput(message: 'x', tenantId: 1));
+
+        $this->assertSame(ChatResponseType::Error, $result->type);
+        $this->assertSame('AI 回應格式錯誤，請重試', $result->reply);
+        $this->assertSame(0, $this->executor->callCount(), 'empty headers 不該執行 SQL');
+    }
+
+    public function test_table_query_low_confidence_skips_execution_and_returns_clarification(): void
+    {
+        $this->llm->queueResponse(new LlmResponse(
+            functionName: 'execute_query_table',
+            functionArguments: [
+                'sql' => 'SELECT name, total FROM customers',
+                'headers' => ['客戶名稱', '金額'],
+                'reply_template' => '共 {count} 位',
+                'confidence' => 0.50,
+            ],
+            content: null,
+            tokensUsed: 100,
+        ));
+
+        $result = $this->engine->handle(new ChatQueryInput(message: '...', tenantId: 1));
+
+        $this->assertSame(ChatResponseType::Clarification, $result->type);
+        $this->assertStringContainsString('不太確定', $result->reply);
+        $this->assertSame(0.50, $result->confidence);
+        $this->assertSame(0, $this->executor->callCount(), '低信心度的 table query 不該執行 SQL');
+    }
+
+    public function test_table_query_executor_exception_returns_error_result(): void
+    {
+        $this->llm->queueResponse(new LlmResponse(
+            functionName: 'execute_query_table',
+            functionArguments: [
+                'sql' => 'SELECT name FROM customers',
+                'headers' => ['客戶名稱'],
+                'reply_template' => '共 {count} 位',
+                'confidence' => 0.95,
+            ],
+            content: null,
+            tokensUsed: 100,
+        ));
+        $this->executor->shouldFailWith(new RuntimeException('connection lost'));
+
+        $result = $this->engine->handle(new ChatQueryInput(message: '列出客戶', tenantId: 1));
+
+        $this->assertSame(ChatResponseType::Error, $result->type);
+        $this->assertSame('查詢執行失敗，請稍後再試', $result->reply);
+    }
+
+    public function test_table_query_invalid_sql_returns_error_result(): void
+    {
+        $this->llm->queueResponse(new LlmResponse(
+            functionName: 'execute_query_table',
+            functionArguments: [
+                'sql' => 'DROP TABLE customers',
+                'headers' => ['客戶名稱'],
+                'reply_template' => '共 {count} 位',
+                'confidence' => 0.99,
+            ],
+            content: null,
+            tokensUsed: 100,
+        ));
+
+        $result = $this->engine->handle(new ChatQueryInput(message: '...', tenantId: 1));
+
+        $this->assertSame(ChatResponseType::Error, $result->type);
+        $this->assertStringContainsString('無法產生合法的查詢語句', $result->reply);
+        $this->assertSame(0, $this->executor->callCount());
+    }
+
+    public function test_unknown_function_name_from_llm_returns_error(): void
+    {
+        $this->llm->queueResponse(new LlmResponse(
+            functionName: 'some_unknown_function',
+            functionArguments: ['foo' => 'bar'],
+            content: null,
+            tokensUsed: 50,
+        ));
+
+        $result = $this->engine->handle(new ChatQueryInput(message: 'x', tenantId: 1));
+
+        $this->assertSame(ChatResponseType::Error, $result->type);
+        $this->assertSame('AI 回應格式錯誤，請重試', $result->reply);
+        $this->assertSame(0, $this->executor->callCount());
+    }
+
+    public function test_system_prompt_contains_schema_tables_and_function_definitions(): void
     {
         $this->llm->queueResponse(new LlmResponse(
             functionName: null,
@@ -306,11 +500,15 @@ final class QueryEngineTest extends TestCase
         $this->assertStringContainsString('total_amount', $systemMessage);
         $this->assertStringContainsString('customers', $systemMessage);
         $this->assertStringContainsString('餐飲業', $systemMessage);
+        $this->assertStringContainsString('execute_query_table', $systemMessage);
         $this->assertSame('隨便問', $userMessage);
 
-        $this->assertCount(1, $call['functions']);
-        $this->assertSame('execute_query', $call['functions'][0]['name']);
-        $this->assertContains('sql', $call['functions'][0]['parameters']['required']);
+        $functionsByName = array_column($call['functions'], null, 'name');
+        $this->assertArrayHasKey('execute_query', $functionsByName);
+        $this->assertArrayHasKey('execute_query_table', $functionsByName);
+        $this->assertContains('sql', $functionsByName['execute_query']['parameters']['required']);
+        $this->assertContains('headers', $functionsByName['execute_query_table']['parameters']['required']);
+        $this->assertContains('reply_template', $functionsByName['execute_query_table']['parameters']['required']);
     }
 
     private function makeEngine(FakeLlmGateway $llm, FakeTenantQueryExecutor $executor): QueryEngine

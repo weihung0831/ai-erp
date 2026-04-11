@@ -151,6 +151,53 @@ class ChatControllerTest extends TestCase
             ]);
     }
 
+    public function test_table_happy_path_returns_structured_table_result(): void
+    {
+        $this->llm->queueResponse(new LlmResponse(
+            functionName: 'execute_query_table',
+            functionArguments: [
+                'sql' => 'SELECT name, total, overdue_days FROM customers WHERE overdue_days > 60',
+                'headers' => ['客戶名稱', '應收金額', '逾期天數'],
+                'reply_template' => '以下是應收帳款超過 60 天的 {count} 位客戶',
+                'confidence' => 0.92,
+            ],
+            content: null,
+            tokensUsed: 1500,
+        ));
+        $this->executor->queueResult([
+            ['name' => '王氏商行', 'total' => 125000, 'overdue_days' => 78],
+            ['name' => '林氏企業', 'total' => 98000, 'overdue_days' => 65],
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->postJson('/api/chat', ['message' => '應收帳款超過 60 天的客戶有哪些']);
+
+        $response->assertOk()
+            ->assertJsonStructure([
+                'reply',
+                'confidence',
+                'type',
+                'data' => ['headers', 'rows', 'truncated'],
+                'sql',
+                'tokens_used',
+            ])
+            ->assertJson([
+                'reply' => '以下是應收帳款超過 60 天的 2 位客戶',
+                'type' => 'table',
+                'confidence' => 0.92,
+                'data' => [
+                    'headers' => ['客戶名稱', '應收金額', '逾期天數'],
+                    'rows' => [
+                        ['王氏商行', 125000, 78],
+                        ['林氏企業', 98000, 65],
+                    ],
+                    'truncated' => false,
+                ],
+                'sql' => 'SELECT name, total, overdue_days FROM customers WHERE overdue_days > 60',
+                'tokens_used' => 1500,
+            ]);
+    }
+
     public function test_llm_failure_returns_200_with_error_type(): void
     {
         $this->llm->shouldFailWith(new RuntimeException('timeout'));

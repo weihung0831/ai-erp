@@ -14,10 +14,10 @@ final readonly class ChatQueryResult
 {
     /**
      * @param  array<string, mixed>  $data  結構化資料，shape 依 type 而定：
-     *                                      numeric 幣別類: ['value' => int|float, 'currency' => 'TWD', 'period' => string]
-     *                                      numeric 計數類: ['value' => int, 'unit' => string, 'period' => ?string]  // 無 currency
-     *                                      table: ['columns' => [...], 'rows' => [[...], [...]]]
-     *                                      clarification: ['question' => string, 'options' => [...]]
+     *                                      numeric: ['value' => int|float, 'value_format' => 'currency'|'count']
+     *                                      table: ['headers' => list<string>, 'rows' => list<list<mixed>>, 'truncated' => bool]
+     *                                      — rows 的 cell 順序對齊 headers 位置；truncated 為 true 代表原始結果 > MAX_TABLE_ROWS 被截斷
+     *                                      clarification / error: 空陣列
      *                                      `reply` 欄位是給使用者看的完整句子，data 只是後端結構化副本。
      */
     public function __construct(

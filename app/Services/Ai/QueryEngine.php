@@ -20,9 +20,16 @@ use Throwable;
  * TenantQueryExecutor、ConfidenceEstimator 五個零件，把使用者的自然語言問題轉成 SELECT
  * 查詢再把結果包成 ChatQueryResult 回給 controller。
  *
- * US-1 階段只處理「單一 scalar 回答」（type=Numeric），幣別與計數兩種格式。
- * 表格查詢（US-2）、多輪對話（US-3）、SQL preview 呈現（US-4）、敏感欄位
- * （US-7）都不在這一輪範圍內。
+ * 結構：handle() 負責 schema / LLM call / 沒 function call 的 clarification fallback，
+ * 再依 LLM 選到的 function name dispatch 到對應的 handleXxxQuery() method。每個 handler
+ * 自己處理 args 解析、SQL validate、信心度評估、執行、結果組裝。
+ *
+ * 目前支援的 function：
+ * - execute_query        → handleScalarQuery()  → ChatResponseType::Numeric
+ * - execute_query_table  → handleTableQuery()   → ChatResponseType::Table
+ *
+ * 未支援（對應 US）：
+ * - 多輪對話（US-3）、SQL preview 呈現（US-4）、敏感欄位（US-7）
  *
  * 錯誤處理原則：任何內部例外（LLM、validator、executor）都 catch 並轉為
  * ChatQueryResult(type=Error)，不讓例外往上傳給 controller，讓 HTTP 層保持 thin。
@@ -31,6 +38,18 @@ final class QueryEngine
 {
     /** 信心度閾值：低於此值不執行 SQL，改為回 Clarification。 */
     private const float LOW_CONFIDENCE_THRESHOLD = 0.70;
+
+    /**
+     * 表格查詢結果 row 數上限。SQL 結果超過此值會被截斷（保留前 N 筆），
+     * 同時在 data.truncated 設為 true 讓前端提示使用者縮小查詢範圍。
+     * 100 = 前端每頁 10 筆 × 10 頁的合理天花板。
+     */
+    private const int MAX_TABLE_ROWS = 100;
+
+    /** LLM function schema 的 name——必須和 functionSchemas() 回傳的 name 欄位一致。 */
+    private const string FN_EXECUTE_QUERY = 'execute_query';
+
+    private const string FN_EXECUTE_QUERY_TABLE = 'execute_query_table';
 
     public function __construct(
         private readonly LlmGateway $llm,
@@ -54,7 +73,7 @@ final class QueryEngine
         try {
             $response = $this->llm->chat(
                 messages: $this->buildMessages($input, $schema),
-                functions: self::executeQueryFunctionSchema(),
+                functions: self::functionSchemas(),
             );
         } catch (Throwable $e) {
             $this->logger->warning('QueryEngine: LLM call failed', ['exception' => $e]);
@@ -74,6 +93,16 @@ final class QueryEngine
             );
         }
 
+        return match ($response->functionName) {
+            self::FN_EXECUTE_QUERY => $this->handleScalarQuery($response, $input),
+            self::FN_EXECUTE_QUERY_TABLE => $this->handleTableQuery($response, $input),
+            default => $this->unknownFunctionResult($response),
+        };
+    }
+
+    /** 處理 execute_query function call，回 scalar（單一 value）結果。 */
+    private function handleScalarQuery(LlmResponse $response, ChatQueryInput $input): ChatQueryResult
+    {
         $args = $response->functionArguments;
         $sql = (string) ($args['sql'] ?? '');
         $replyTemplate = (string) ($args['reply_template'] ?? '');
@@ -100,14 +129,7 @@ final class QueryEngine
         $confidence = $this->confidenceEstimator->adjust($baseConfidence, $sql);
 
         if ($confidence < self::LOW_CONFIDENCE_THRESHOLD) {
-            return new ChatQueryResult(
-                reply: '我不太確定要查什麼，可以提供更多細節嗎？例如具體的時間範圍或篩選條件。',
-                confidence: $confidence,
-                type: ChatResponseType::Clarification,
-                data: [],
-                sql: $sql,
-                tokensUsed: $response->tokensUsed,
-            );
+            return $this->lowConfidenceClarification($confidence, $sql, $response->tokensUsed);
         }
 
         try {
@@ -142,6 +164,110 @@ final class QueryEngine
             sql: $sql,
             tokensUsed: $response->tokensUsed,
         );
+    }
+
+    /** 處理 execute_query_table function call，回表格結果。 */
+    private function handleTableQuery(LlmResponse $response, ChatQueryInput $input): ChatQueryResult
+    {
+        $args = $response->functionArguments;
+        $sql = (string) ($args['sql'] ?? '');
+        $replyTemplate = (string) ($args['reply_template'] ?? '');
+        $baseConfidence = (float) ($args['confidence'] ?? 0.0);
+
+        // LLM 可能漏填 headers、回 null、或誤填成 string——明確擋掉 wrong shape，
+        // 不用 (array) 靜默轉換（會把 scalar 包成單元素 list 掩蓋真正的 bug）。
+        $headers = $args['headers'] ?? null;
+        if (! is_array($headers) || $headers === []) {
+            $this->logger->warning('QueryEngine: LLM returned invalid headers for table query', ['args' => $args]);
+
+            return $this->errorResult('AI 回應格式錯誤，請重試');
+        }
+        $headers = array_map('strval', $headers);
+
+        try {
+            $this->validator->assertSelectOnly($sql);
+        } catch (InvalidSqlException $e) {
+            $this->logger->warning('QueryEngine: LLM produced invalid SQL', [
+                'reason_code' => $e->reasonCode,
+                'sql' => $sql,
+            ]);
+
+            return $this->errorResult('無法產生合法的查詢語句，請換個說法試試');
+        }
+
+        $confidence = $this->confidenceEstimator->adjust($baseConfidence, $sql);
+
+        if ($confidence < self::LOW_CONFIDENCE_THRESHOLD) {
+            return $this->lowConfidenceClarification($confidence, $sql, $response->tokensUsed);
+        }
+
+        try {
+            $rows = $this->executor->execute($input->tenantId, $sql);
+        } catch (Throwable $e) {
+            $this->logger->warning('QueryEngine: SQL execution failed', [
+                'exception' => $e,
+                'sql' => $sql,
+            ]);
+
+            return $this->errorResult('查詢執行失敗，請稍後再試');
+        }
+
+        $truncated = count($rows) > self::MAX_TABLE_ROWS;
+        if ($truncated) {
+            $rows = array_slice($rows, 0, self::MAX_TABLE_ROWS);
+        }
+
+        // 把 PDO 的 list of assoc array 轉成 list of list，避免前端依賴 JSON object
+        // 的 key 順序保證——cell 位置用「headers 順序」對齊就好。
+        $rowsAsList = array_map('array_values', $rows);
+
+        $count = count($rowsAsList);
+        $reply = $count === 0
+            ? '目前沒有符合條件的資料'
+            : str_replace('{count}', (string) $count, $replyTemplate);
+
+        return new ChatQueryResult(
+            reply: $reply,
+            confidence: $confidence,
+            type: ChatResponseType::Table,
+            data: [
+                'headers' => $headers,
+                'rows' => $rowsAsList,
+                'truncated' => $truncated,
+            ],
+            sql: $sql,
+            tokensUsed: $response->tokensUsed,
+        );
+    }
+
+    /**
+     * 低信心度（< LOW_CONFIDENCE_THRESHOLD）走這條路：不執行 SQL，回 Clarification
+     * 讓使用者補充細節。scalar 和 table 兩路共用同一段措辭。
+     */
+    private function lowConfidenceClarification(float $confidence, string $sql, int $tokensUsed): ChatQueryResult
+    {
+        return new ChatQueryResult(
+            reply: '我不太確定要查什麼，可以提供更多細節嗎？例如具體的時間範圍或篩選條件。',
+            confidence: $confidence,
+            type: ChatResponseType::Clarification,
+            data: [],
+            sql: $sql,
+            tokensUsed: $tokensUsed,
+        );
+    }
+
+    /**
+     * LLM 回了沒註冊的 function name。代表 prompt / function schema 脫節
+     * 或 LLM 產出異常，log warning 供後續校準，使用者端當結構化錯誤處理。
+     */
+    private function unknownFunctionResult(LlmResponse $response): ChatQueryResult
+    {
+        $this->logger->warning('QueryEngine: LLM called unknown function', [
+            'function_name' => $response->functionName,
+            'arguments' => $response->functionArguments,
+        ]);
+
+        return $this->errorResult('AI 回應格式錯誤，請重試');
     }
 
     /**
@@ -212,7 +338,15 @@ final class QueryEngine
             $lines[] = '';
         }
 
-        $lines[] = '請呼叫 execute_query function 產生 MySQL SELECT 語句回答使用者問題。';
+        $lines[] = '請依問題類型呼叫對應的 function：';
+        $lines[] = '- 單一數值結果（營收、數量、平均值等）→ execute_query';
+        $lines[] = '- 多筆列表結果（逾期客戶列表、銷售排行、訂單明細等）→ execute_query_table';
+        $lines[] = '';
+        $lines[] = '呼叫 execute_query_table 時：';
+        $lines[] = '- headers 必須是中文欄位名稱 list，和 SQL SELECT 子句的欄位順序一一對應';
+        $lines[] = '- reply_template 用 {count} 作為資料筆數的占位符';
+        $lines[] = '- SQL 建議加 LIMIT 100 以內，避免回傳過多資料';
+        $lines[] = '';
         $lines[] = '若問題需要寫入資料（新增 / 修改 / 刪除），請以文字回覆說明目前僅支援查詢。';
         $lines[] = '若問題不清楚，請以文字回覆要求使用者釐清。';
 
@@ -235,7 +369,7 @@ final class QueryEngine
     }
 
     /**
-     * OpenAI function calling 的 execute_query 函式 schema。
+     * OpenAI function calling 的 function schema 集合。LLM 依使用者問題選一個呼叫。
      *
      * 內容是純靜態的（schema 不會因 request 而變），但因為包含 ValueFormat::values()
      * 這種不能放進 class constant 的 runtime 呼叫，所以用 function-local static 快取
@@ -243,14 +377,14 @@ final class QueryEngine
      *
      * @return list<array{name: string, description: string, parameters: array<string, mixed>}>
      */
-    private static function executeQueryFunctionSchema(): array
+    private static function functionSchemas(): array
     {
-        static $schema = null;
+        static $schemas = null;
 
-        return $schema ??= [
+        return $schemas ??= [
             [
-                'name' => 'execute_query',
-                'description' => '執行 SELECT 語句回答使用者的查詢問題',
+                'name' => self::FN_EXECUTE_QUERY,
+                'description' => '執行 SELECT 語句回答使用者的查詢問題（單一 scalar 結果）',
                 'parameters' => [
                     'type' => 'object',
                     'properties' => [
@@ -273,6 +407,33 @@ final class QueryEngine
                         ],
                     ],
                     'required' => ['sql', 'reply_template', 'value_format', 'confidence'],
+                ],
+            ],
+            [
+                'name' => self::FN_EXECUTE_QUERY_TABLE,
+                'description' => '執行 SELECT 語句並以表格形式回答使用者（多筆資料列表）',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'sql' => [
+                            'type' => 'string',
+                            'description' => '要執行的 MySQL SELECT 語句，僅限 SELECT，建議加 LIMIT',
+                        ],
+                        'headers' => [
+                            'type' => 'array',
+                            'items' => ['type' => 'string'],
+                            'description' => '表格欄位的中文名稱 list，順序必須和 SQL SELECT 子句的欄位順序一一對應',
+                        ],
+                        'reply_template' => [
+                            'type' => 'string',
+                            'description' => '自然語言開場白，使用 {count} 作為查詢結果筆數的占位符',
+                        ],
+                        'confidence' => [
+                            'type' => 'number',
+                            'description' => '0-1 之間的信心度分數',
+                        ],
+                    ],
+                    'required' => ['sql', 'headers', 'reply_template', 'confidence'],
                 ],
             ],
         ];
