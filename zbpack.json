@@ -1,7 +1,4 @@
 {
     "$schema": "https://schema.zeabur.app/zbpack.json",
-    "php": {
-        "optimize": false
-    },
-    "start_command": "php artisan migrate --force && php artisan optimize && _startup"
+    "start_command": "php artisan config:clear && php artisan migrate --force && _startup"
 }
