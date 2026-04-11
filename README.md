@@ -6,7 +6,9 @@ AI-powered ERP platform that lets customers build and query ERP systems through 
 
 ## Status
 
-**Design phase.** The Laravel application is not yet scaffolded — this repository currently contains design documents, architecture, specs, the UI design system, and a solutions knowledge base. Implementation follows the spec order defined in [CLAUDE.md](CLAUDE.md): starting with [00 Component Library](docs/spec/00-component-library.md), then [01 Phase 1 Backend](docs/spec/01-phase1-backend.md), [02 Phase 1 Frontend](docs/spec/02-phase1-frontend.md), and so on through Phase 3.
+**Phase 1 in progress.** Laravel 13 + Sanctum is scaffolded and all 42 Blade components defined in [00 Component Library](docs/spec/00-component-library.md) are implemented under `resources/views/components/{namespace}/`. A live showcase of every component is available at **`/components`** once the dev server is running.
+
+Still to build: `Controllers/Api/`, `app/Services/` (Query Engine, Build Engine, LLM Gateway, TenantManager), chat/query persistence migrations, and the Phase 1 chat UI page. Implementation follows the spec order in [CLAUDE.md](CLAUDE.md).
 
 ## What is this?
 
@@ -33,9 +35,9 @@ An ERP development company's product: instead of hiring developers to build cust
 
 ## Architecture
 
-- **API-first** — `Controllers/Api/` returns JSON, `Controllers/Web/` returns Blade views via Axios calls to `/api/*`
+- **API-first** — `Controllers/Api/` (not yet created; added during Phase 1) returns JSON; `Controllers/Web/` returns Blade views that make Axios calls to `/api/*`
 - **DB-per-tenant** — Each customer gets an isolated MySQL database
-- **Blade components** — All UI built with namespaced components (`<x-chat.bubble>`, `<x-data.table>`, etc.)
+- **Blade components** — All UI built with namespaced components (`<x-chat.bubble>`, `<x-data.table>`, etc.). The component library (42 components) is complete and browsable at `/components`
 
 ## Development Phases
 
@@ -51,36 +53,65 @@ An ERP development company's product: instead of hiring developers to build cust
 - [System Architecture](docs/architecture/system-architecture.md) — Modules, database, API design
 - [Design Patterns](docs/design/design-pattern.md) — Repository, Service, Factory, DTO, etc.
 - [UI Design Spec](docs/design/ui-design-spec.md) — Component visual specs, dark mode, animations
-- [Component Library](docs/spec/00-component-library.md) — 42 Blade Component definitions
-- [Solutions Knowledge Base](docs/solutions/) — Resolved issues and workflow patterns, organized by category with frontmatter metadata (`module`, `tags`, `problem_type`)
+- [Component Library](docs/spec/00-component-library.md) — 42 Blade Component definitions (all implemented)
 
 ## Getting Started
 
-### Read the design first
+### Prerequisites
 
-While the Laravel application is not yet scaffolded, start by reading the approved design:
+- PHP **^8.3** + Composer
+- Node.js 20+ (for Vite / Tailwind v4)
+- MySQL 8+
+- Redis (tag-aware) — required from Phase 1 for LLM response caching
+- OpenAI API key (GPT-4o) — required from Phase 1 for chat features
+
+### Setup
 
 ```bash
 git clone https://github.com/weihung0831/ai-erp.git
 cd ai-erp
 git submodule update --init --recursive
+
+composer install
+npm install
+cp .env.example .env
+php artisan key:generate
+php artisan migrate
+npm run build
 ```
 
-Then read, in order:
+### Run
+
+```bash
+# All-in-one: server + queue + logs + Vite watcher
+composer run dev
+
+# Or just the PHP dev server
+php artisan serve
+```
+
+Open **http://localhost:8000/components** to browse the Blade component library.
+
+### Common commands
+
+```bash
+composer run test                # phpunit tests
+./vendor/bin/pint --test         # lint check
+./vendor/bin/pint                # lint auto-fix
+npm run build                    # production asset build
+npm run dev                      # Vite watch mode
+php artisan view:clear           # clear compiled Blade cache
+```
+
+### Read the design first
+
+Before writing any code, read these in order:
 
 1. [Design Document](docs/design/ai-erp-platform.md) — what we're building and why
 2. [System Architecture](docs/architecture/system-architecture.md) — modules, database, API
 3. [Design Patterns](docs/design/design-pattern.md) — **required reading before writing any code**
-4. [UI Design Spec](docs/design/ui-design-spec.md) — component visual specs, dark mode, animations (the basis for the component library)
-5. [Component Library Spec](docs/spec/00-component-library.md) — the first implementation target, per the spec order defined in [CLAUDE.md](CLAUDE.md)
-
-### Planned stack (for when implementation begins)
-
-- PHP >= 8.2 + Composer
-- MySQL >= 8.0
-- Redis (tag-aware)
-- Node.js (for frontend assets)
-- OpenAI API key (GPT-4o)
+4. [UI Design Spec](docs/design/ui-design-spec.md) — component visual specs, dark mode, animations
+5. [Component Library Spec](docs/spec/00-component-library.md) — already implemented; reference for which component to use
 
 ## License
 

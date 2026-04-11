@@ -23,7 +23,34 @@ AI ERP 平台，讓客戶用對話建構和查詢 ERP 系統。團隊本身是 E
 
 ## 目前狀態
 
-**Design phase** — 尚未 scaffold Laravel。目前 repo 只有 design docs、spec、DESIGN.md。沒有 `app/`、`composer.json`、`artisan`。回答問題或修改檔案前，先 `ls` 或 `Glob` 確認目錄存在，不要假設 Controller / Service / Repository 已存在。
+**Phase 1 實作中。** Laravel 13 + Sanctum 已 scaffold、`docs/spec/00-component-library.md` 的 42 個 Blade Component 已全數實作在 `resources/views/components/{namespace}/`，showcase 頁面在 `/components`。
+
+**尚未建立：** `app/Http/Controllers/Api/`、`app/Services/`（Query/Build Engine、TenantManager、LlmGateway）、`app/Models/`（除 Laravel 預設）、`database/migrations/` 的 chat_histories / query_logs / subscriptions。實作新功能前先 `Glob` 確認對應目錄是否存在，不要假設 Service / Repository 已經在。
+
+## 常用指令
+
+```bash
+# 一鍵啟動 server + queue + logs + vite
+composer run dev
+
+# 只啟 PHP dev server（背景執行或 showcase 檢視時用這個）
+php artisan serve
+
+# 前端 asset 打包
+npm run build      # production
+npm run dev        # watch mode
+
+# 測試
+composer run test
+
+# Lint（push 前一定要跑）
+./vendor/bin/pint --test        # 檢查
+./vendor/bin/pint                # 自動修
+
+# 清快取（改了 Blade component 或 config 後）
+php artisan view:clear
+php artisan config:clear
+```
 
 ## 技術棧
 
@@ -39,7 +66,7 @@ AI ERP 平台，讓客戶用對話建構和查詢 ERP 系統。團隊本身是 E
 
 ## 架構要點
 
-- **前後端分離：** `Controllers/Api/` 回傳 JSON 處理業務邏輯，`Controllers/Web/` 只回傳 Blade view，不碰資料庫
+- **前後端分離：** `Controllers/Api/`（尚未建立，Phase 1 實作時新增）回傳 JSON 處理業務邏輯，`Controllers/Web/` 只回傳 Blade view，不碰資料庫
 - **DB-per-tenant：** 每個客戶獨立 MySQL DB，主資料庫存平台運營資料
 - **API-first：** Blade 頁面透過 Axios 呼叫自己的 `/api/*` 端點
 - **Blade 元件化：** 所有 UI 用 `<x-chat.bubble>` 等巢狀命名空間的 Blade Component
@@ -53,6 +80,39 @@ AI ERP 平台，讓客戶用對話建構和查詢 ERP 系統。團隊本身是 E
 - Factory 統一用 Service Provider 綁定，不用 static method
 - DTO 和 FormRequest 分離：FormRequest 驗證請求，DTO 傳遞資料
 - Web Controller 不呼叫 Service，不操作資料庫
+
+## Blade 元件系統
+
+所有 42 個元件在 `resources/views/components/{namespace}/`，showcase 頁 `/components`。
+
+### 命名空間 gotcha：`layout/` vs `layouts/`（單複數）
+
+- `components/layouts/app.blade.php` — HTML 框架（含 `<html>`、字型、Vite assets）。用法 `<x-layouts.app>...</x-layouts.app>`。
+- `components/layout/{sidebar,header,page}.blade.php` — 實際的版面導覽元件。用法 `<x-layout.sidebar>`、`<x-layout.header>`。
+
+兩者差一個 `s`。別混用。
+
+### 設計系統 class（在 `resources/css/app.css`）
+
+新元件一律用 CSS class 和變數，**禁止 inline style**，否則 dark mode 不會跟著切。
+
+- **Heading：** `.h-hero` (40px) / `.h-section` (32px) / `.h-card` (24px) / `.h-sub` (20px)
+- **Card：** `.card` / `.card.is-selected`（brand ring 高亮）
+- **Stack / row：** `.stack-xs/sm/md/lg/xl`（flex column + gap）、`.row-sm/md`（flex row + gap）
+- **Progress：** `.progress-track` + `.progress-fill.is-ok/is-warning/is-danger`
+- **Step badge：** `.step-badge.is-active` / `.step-dot.is-done`
+- **Confidence：** `.confidence-high/mid/low`、`.stat-trend-up/-down`
+- **Alpine：** 需要隱藏的元件加 `x-cloak`（全域規則已定義）
+
+CSS 變數體系：`--bg-page/-card/-white/-sand/-cream`, `--text-primary/-secondary/-tertiary`, `--brand/-hover/-active`, `--border`, `--ring-default/-focus/-brand`。完整清單見 `app.css` 的 `:root` 區塊。
+
+### `displayName` vs `display_name`
+
+非對稱的命名 convention，依元件來源決定：
+- **Build 元件**（`<x-build.*>`、`<x-onboarding.*>` 等 UI-constructed 資料）→ **camelCase** `displayName`
+- **CRUD 元件**（`<x-crud.dynamic-*>` 吃 `schema_metadata`）→ **snake_case** `display_name`（對應 DB 欄位名）
+
+不要在元件內加 `?? $x['other']` 的 defensive fallback，保留單一 source 就好。
 
 ## 文件索引
 
@@ -72,9 +132,6 @@ AI ERP 平台，讓客戶用對話建構和查詢 ERP 系統。團隊本身是 E
 - [04 Phase 2 前端](docs/spec/04-phase2-frontend.md) — 建構介面頁面
 - [05 Phase 3 後端](docs/spec/05-phase3-backend.md) — SaaS + 知識回饋
 - [06 Phase 3 前端](docs/spec/06-phase3-frontend.md) — 註冊、管理後台
-
-### 已解決問題知識庫
-- `docs/solutions/` — 過往問題的解決方案（bug、best practice、workflow pattern），按 category 組織，frontmatter 含 `module`、`tags`、`problem_type`。實作或除錯進入已有紀錄的領域時可參考。
 
 ## Git Submodules
 

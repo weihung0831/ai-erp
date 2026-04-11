@@ -1,7 +1,10 @@
 <?php
 
+use App\Http\Controllers\Web\ComponentShowcaseController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return view('welcome');
+    return redirect('/components');
 });
+
+Route::get('/components', ComponentShowcaseController::class)->name('components.showcase');

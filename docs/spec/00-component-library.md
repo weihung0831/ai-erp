@@ -13,76 +13,76 @@
 ### Phase 1 基礎元件（與 Phase 1 前端同步開發）
 
 **Layout**
-- [ ] `<x-layout.page>` — 頁面框架
-- [ ] `<x-layout.sidebar>` — 側邊導覽列
-- [ ] `<x-layout.header>` — 頂部導覽列
+- [x] `<x-layout.page>` — 頁面框架
+- [x] `<x-layout.sidebar>` — 側邊導覽列
+- [x] `<x-layout.header>` — 頂部導覽列
 
 **Chat**
-- [ ] `<x-chat.bubble>` — 聊天氣泡
-- [ ] `<x-chat.input>` — 聊天輸入框
-- [ ] `<x-chat.quick-actions>` — 快捷按鈕列
-- [ ] `<x-chat.confidence>` — 信心度標籤
-- [ ] `<x-chat.typing>` — AI 打字中動畫
-- [ ] `<x-chat.result-table>` — 查詢結果表格（聊天內嵌）
-- [ ] `<x-chat.result-number>` — 查詢結果數字（聊天內嵌）
+- [x] `<x-chat.bubble>` — 聊天氣泡
+- [x] `<x-chat.input>` — 聊天輸入框
+- [x] `<x-chat.quick-actions>` — 快捷按鈕列
+- [x] `<x-chat.confidence>` — 信心度標籤
+- [x] `<x-chat.typing>` — AI 打字中動畫
+- [x] `<x-chat.result-table>` — 查詢結果表格（聊天內嵌）
+- [x] `<x-chat.result-number>` — 查詢結果數字（聊天內嵌）
 
 **Data**
-- [ ] `<x-data.table>` — 通用資料表格
-- [ ] `<x-data.pagination>` — 分頁元件
-- [ ] `<x-data.empty-state>` — 空資料提示
+- [x] `<x-data.table>` — 通用資料表格
+- [x] `<x-data.pagination>` — 分頁元件
+- [x] `<x-data.empty-state>` — 空資料提示
 
 **Form**
-- [ ] `<x-form.input>` — 文字輸入框
+- [x] `<x-form.input>` — 文字輸入框
 
 **UI**
-- [ ] `<x-ui.button>` — 按鈕
-- [ ] `<x-ui.alert>` — 提示訊息
-- [ ] `<x-ui.modal>` — Modal 對話框（用於閒置警告）
-- [ ] `<x-ui.dropdown>` — 下拉選單（用於 header 使用者選單）
-- [ ] `<x-ui.loading>` — 載入動畫（skeleton）
-- [ ] `<x-ui.toast>` — 即時通知（操作回饋）
-- [ ] `<x-ui.tooltip>` — hover 提示
+- [x] `<x-ui.button>` — 按鈕
+- [x] `<x-ui.alert>` — 提示訊息
+- [x] `<x-ui.modal>` — Modal 對話框（用於閒置警告）
+- [x] `<x-ui.dropdown>` — 下拉選單（用於 header 使用者選單）
+- [x] `<x-ui.loading>` — 載入動畫（skeleton）
+- [x] `<x-ui.toast>` — 即時通知（操作回饋）
+- [x] `<x-ui.tooltip>` — hover 提示
 
 ### Phase 2 動態 CRUD 元件
 
 **Build**
-- [ ] `<x-build.module-card>` — 模組預覽卡片
-- [ ] `<x-build.schema-preview>` — Schema 預覽
-- [ ] `<x-build.column-row>` — 欄位定義行
-- [ ] `<x-build.industry-picker>` — 產業選擇器
-- [ ] `<x-build.module-checklist>` — 模組勾選清單
-- [ ] `<x-build.confirm-dialog>` — 建構確認對話框
+- [x] `<x-build.module-card>` — 模組預覽卡片
+- [x] `<x-build.schema-preview>` — Schema 預覽
+- [x] `<x-build.column-row>` — 欄位定義行
+- [x] `<x-build.industry-picker>` — 產業選擇器
+- [x] `<x-build.module-checklist>` — 模組勾選清單
+- [x] `<x-build.confirm-dialog>` — 建構確認對話框
 
 **CRUD**
-- [ ] `<x-crud.dynamic-table>` — 動態 CRUD 表格
-- [ ] `<x-crud.dynamic-form>` — 動態 CRUD 表單
+- [x] `<x-crud.dynamic-table>` — 動態 CRUD 表格
+- [x] `<x-crud.dynamic-form>` — 動態 CRUD 表單
 
 **Form 補充**
-- [ ] `<x-form.textarea>` — 多行文字
-- [ ] `<x-form.select>` — 下拉選單
-- [ ] `<x-form.toggle>` — 開關
-- [ ] `<x-form.date-picker>` — 日期選擇器
-- [ ] `<x-form.checkbox>` — 勾選框
+- [x] `<x-form.textarea>` — 多行文字
+- [x] `<x-form.select>` — 下拉選單
+- [x] `<x-form.toggle>` — 開關
+- [x] `<x-form.date-picker>` — 日期選擇器
+- [x] `<x-form.checkbox>` — 勾選框
 
 **UI 補充**
-- [ ] `<x-ui.badge>` — 標籤
+- [x] `<x-ui.badge>` — 標籤
 
 ### Phase 3 SaaS 管理元件
 
 **Onboarding**
-- [ ] `<x-onboarding.step>` — Onboarding 步驟容器
-- [ ] `<x-onboarding.progress>` — 進度指示器
+- [x] `<x-onboarding.step>` — Onboarding 步驟容器
+- [x] `<x-onboarding.progress>` — 進度指示器
 
 **Billing**
-- [ ] `<x-billing.plan-card>` — 方案卡片
-- [ ] `<x-billing.usage-bar>` — 用量進度條
+- [x] `<x-billing.plan-card>` — 方案卡片
+- [x] `<x-billing.usage-bar>` — 用量進度條
 
 **Admin**
-- [ ] `<x-admin.tenant-card>` — 租戶資訊卡片
-- [ ] `<x-admin.trend-chart>` — 趨勢圖表
+- [x] `<x-admin.tenant-card>` — 租戶資訊卡片
+- [x] `<x-admin.trend-chart>` — 趨勢圖表
 
 **Data 補充**
-- [ ] `<x-data.stat-card>` — 數據統計卡片
+- [x] `<x-data.stat-card>` — 數據統計卡片
 
 ## 元件介面定義
 

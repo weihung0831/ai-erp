@@ -6,7 +6,9 @@
 
 ## 專案狀態
 
-**Design phase。** Laravel 專案尚未 scaffold，目前 repo 包含設計文件、架構、規格書、UI design system 與已解決問題知識庫。實作依照 [CLAUDE.md](CLAUDE.md) 列出的開發順序進行：從 [00 元件庫](docs/spec/00-component-library.md) 開始，接著 [01 Phase 1 後端](docs/spec/01-phase1-backend.md)、[02 Phase 1 前端](docs/spec/02-phase1-frontend.md)，依序做到 Phase 3。
+**Phase 1 實作中。** Laravel 13 + Sanctum 已 scaffold，[00 元件庫](docs/spec/00-component-library.md) 定義的 42 個 Blade Component 已全數實作在 `resources/views/components/{namespace}/`，dev server 啟動後可在 **`/components`** 看到完整展示頁。
+
+**尚未建立：** `Controllers/Api/`、`app/Services/`（Query Engine、Build Engine、LLM Gateway、TenantManager）、聊天／查詢持久化的 migration，以及 Phase 1 聊天頁面。實作順序依 [CLAUDE.md](CLAUDE.md) 列出的 spec。
 
 ## 這是什麼？
 
@@ -33,9 +35,9 @@
 
 ## 架構
 
-- **API-first** — `Controllers/Api/` 回傳 JSON，`Controllers/Web/` 回傳 Blade view，透過 Axios 呼叫 `/api/*`
+- **API-first** — `Controllers/Api/`（尚未建立，Phase 1 實作時新增）回傳 JSON；`Controllers/Web/` 回傳 Blade view，透過 Axios 呼叫 `/api/*`
 - **DB-per-tenant** — 每個客戶獨立 MySQL DB
-- **Blade 元件化** — 所有 UI 用巢狀命名空間元件（`<x-chat.bubble>`、`<x-data.table>` 等）
+- **Blade 元件化** — 所有 UI 用巢狀命名空間元件（`<x-chat.bubble>`、`<x-data.table>` 等）。42 個元件庫已全部完成，可在 `/components` 預覽
 
 ## 開發階段
 
@@ -51,36 +53,65 @@
 - [系統架構](docs/architecture/system-architecture.md) — 模組、資料庫、API 設計
 - [設計模式](docs/design/design-pattern.md) — Repository、Service、Factory、DTO 等
 - [UI 設計規範](docs/design/ui-design-spec.md) — 元件視覺規範、dark mode、動畫
-- [元件庫](docs/spec/00-component-library.md) — 42 個 Blade Component 定義
-- [已解決問題知識庫](docs/solutions/) — 過往 bug、best practice、workflow pattern，按 category 組織，frontmatter 含 `module`、`tags`、`problem_type`
+- [元件庫](docs/spec/00-component-library.md) — 42 個 Blade Component 定義（已全部實作）
 
 ## 快速開始
 
-### 先讀設計文件
+### 環境需求
 
-Laravel 專案尚未 scaffold，目前請從已核准的設計文件開始讀：
+- PHP **^8.3** + Composer
+- Node.js 20+（Vite / Tailwind v4 需要）
+- MySQL 8+
+- Redis（需支援 tag，Phase 1 用於 LLM 回應快取）
+- OpenAI API key（GPT-4o，Phase 1 聊天功能需要）
+
+### 安裝
 
 ```bash
 git clone https://github.com/weihung0831/ai-erp.git
 cd ai-erp
 git submodule update --init --recursive
+
+composer install
+npm install
+cp .env.example .env
+php artisan key:generate
+php artisan migrate
+npm run build
 ```
+
+### 啟動
+
+```bash
+# 一鍵起全部：server + queue + logs + Vite watcher
+composer run dev
+
+# 或只啟 PHP dev server
+php artisan serve
+```
+
+打開 **http://localhost:8000/components** 檢視 Blade 元件庫展示頁。
+
+### 常用指令
+
+```bash
+composer run test                # phpunit 測試
+./vendor/bin/pint --test         # lint 檢查
+./vendor/bin/pint                # lint 自動修
+npm run build                    # 前端 production build
+npm run dev                      # Vite watch mode
+php artisan view:clear           # 清 Blade 編譯快取
+```
+
+### 開始寫程式前先讀
 
 依序閱讀：
 
 1. [設計文件](docs/design/ai-erp-platform.md) — 做什麼、為什麼做
 2. [系統架構](docs/architecture/system-architecture.md) — 模組、資料庫、API
 3. [設計模式](docs/design/design-pattern.md) — **開始寫程式前必讀**
-4. [UI 設計規範](docs/design/ui-design-spec.md) — 元件視覺規範、dark mode、動畫（元件庫的依據）
-5. [元件庫規格](docs/spec/00-component-library.md) — 第一個實作目標，之後依照 [CLAUDE.md](CLAUDE.md) 所列的 spec 開發順序進行
-
-### 預計技術棧（實作開始時需要）
-
-- PHP >= 8.2 + Composer
-- MySQL >= 8.0
-- Redis（需支援 tag）
-- Node.js（前端資源）
-- OpenAI API key（GPT-4o）
+4. [UI 設計規範](docs/design/ui-design-spec.md) — 元件視覺規範、dark mode、動畫
+5. [元件庫規格](docs/spec/00-component-library.md) — 已實作完成，作為使用元件的參考
 
 ## 授權
 
