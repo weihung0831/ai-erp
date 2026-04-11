@@ -21,11 +21,14 @@
 |           'description' => '選填，細節說明'
 |           'restricted' => true|false（預設 false；true 代表 US-7 敏感欄位）
 |
+| 這份 fixture 必須對齊 DemoSeeder 實際建立的 DB schema——否則 LLM 會產出
+| 參照不存在欄位的 SQL。改動 migration 時要一起檢查這裡。
+|
 */
 
 return [
     'tenants' => [
-        // 1 = 開發用預設 tenant（餐飲業範例）
+        // 1 = 開發/spike 用的示範餐廳，對應 DemoSeeder 建立的 tenant
         1 => [
             'domain_context' => '餐飲業',
             'tables' => [
@@ -48,26 +51,6 @@ return [
                         ['name' => 'name', 'type' => 'varchar', 'display_name' => '客戶名稱'],
                         ['name' => 'phone', 'type' => 'varchar', 'display_name' => '電話'],
                         ['name' => 'created_at', 'type' => 'datetime', 'display_name' => '建立時間'],
-                    ],
-                ],
-                [
-                    'name' => 'menu_items',
-                    'display_name' => '菜單品項',
-                    'columns' => [
-                        ['name' => 'id', 'type' => 'int', 'display_name' => '品項編號'],
-                        ['name' => 'name', 'type' => 'varchar', 'display_name' => '品項名稱'],
-                        ['name' => 'price', 'type' => 'decimal', 'display_name' => '單價'],
-                        ['name' => 'category', 'type' => 'varchar', 'display_name' => '分類', 'description' => '主餐/飲料/甜點'],
-                    ],
-                ],
-                [
-                    'name' => 'employees',
-                    'display_name' => '員工',
-                    'columns' => [
-                        ['name' => 'id', 'type' => 'int', 'display_name' => '員工編號'],
-                        ['name' => 'name', 'type' => 'varchar', 'display_name' => '員工姓名'],
-                        ['name' => 'role', 'type' => 'varchar', 'display_name' => '職位'],
-                        ['name' => 'salary', 'type' => 'decimal', 'display_name' => '薪資', 'restricted' => true],
                     ],
                 ],
             ],

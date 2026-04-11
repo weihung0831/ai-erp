@@ -20,8 +20,8 @@ class AppServiceProvider extends ServiceProvider
         // 每個 request 一個 TenantManager 實例，避免跨 request 狀態殘留。
         $this->app->scoped(TenantManager::class);
 
-        // LlmGateway 的 production 預設是 OpenAiGateway（目前為空殼，chat() 會丟
-        // LogicException）。測試必須用 $this->app->instance() 覆蓋成 FakeLlmGateway。
+        // LlmGateway 的 production 綁定是 OpenAiGateway（會實際打 OpenAI-compatible API）。
+        // 測試用 $this->app->instance() 覆蓋成 FakeLlmGateway 避免真實 I/O。
         // Singleton 因為 gateway 無狀態、constructor 只吃 config，不需要每 request 重建。
         $this->app->singleton(LlmGateway::class, function ($app): OpenAiGateway {
             /** @var Repository $config */
@@ -31,6 +31,7 @@ class AppServiceProvider extends ServiceProvider
                 apiKey: (string) $config->get('services.openai.api_key', ''),
                 model: (string) $config->get('services.openai.model', 'gpt-4o'),
                 timeoutSeconds: (int) $config->get('services.openai.timeout', 10),
+                baseUrl: (string) $config->get('services.openai.base_url', 'https://api.openai.com/v1'),
             );
         });
 

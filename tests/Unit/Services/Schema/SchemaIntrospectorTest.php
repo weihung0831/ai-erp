@@ -125,6 +125,7 @@ final class SchemaIntrospectorTest extends TestCase
     {
         // 驗證 config/schema_fixtures.php 實體檔案可以被正確 hydrate——
         // 這層測試同時保證 fixture 檔案 shape 不會因筆誤漂掉。
+        // fixture 的 orders / customers 定義必須對齊 DemoSeeder 建立的真實 DB schema。
         $config = new Repository([
             'schema_fixtures' => require __DIR__.'/../../../../config/schema_fixtures.php',
         ]);
@@ -134,10 +135,9 @@ final class SchemaIntrospectorTest extends TestCase
         $this->assertSame('餐飲業', $context->domainContext);
         $this->assertContains('orders', $context->tableNames());
         $this->assertContains('customers', $context->tableNames());
-        $this->assertContains('employees', $context->tableNames());
 
-        $salary = $context->findTable('employees')?->findColumn('salary');
-        $this->assertNotNull($salary);
-        $this->assertTrue($salary->restricted);
+        $totalAmount = $context->findTable('orders')?->findColumn('total_amount');
+        $this->assertNotNull($totalAmount);
+        $this->assertSame('decimal', $totalAmount->type);
     }
 }
