@@ -201,7 +201,7 @@
 ```
 1. 客戶完成註冊
 2. 系統在主 DB 建立 tenant 記錄
-3. 自動建立 tenant_{id}_db（MySQL CREATE DATABASE）
+3. 自動建立 ai_erp_tenant_{id}_db（MySQL CREATE DATABASE）
 4. 建立 read-only MySQL user（供 Query Engine 使用）
 5. 建立 read-write MySQL user（供 Build Engine 使用）
 6. 初始化 schema_metadata 表

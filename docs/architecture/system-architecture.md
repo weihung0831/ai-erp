@@ -192,7 +192,7 @@ domain-knowledge/
 存放平台自身的運營資料，所有租戶共用。
 
 ```
-main_db
+ai_erp_db
 ├── tenants            # 租戶清單
 │   ├── id
 │   ├── name           # 公司名稱
@@ -234,7 +234,7 @@ main_db
 每個客戶獨立一個 DB，schema 由 Chat-to-build 或手動建立。
 
 ```
-tenant_{id}_db
+ai_erp_tenant_{id}_db
 ├── schema_metadata    # Schema 中文註解（供 Query Engine 使用）
 │   ├── table_name
 │   ├── column_name
@@ -254,7 +254,7 @@ tenant_{id}_db
 1. 使用者登入 → Laravel Sanctum 發 API token（Bearer token）
 2. 每個 request → Auth Middleware 驗證 token
 3. Token 解析出 user_id → 查主 DB 取得 tenant_id
-4. Tenant Middleware → 切換 DB 連線到 tenant_{id}_db
+4. Tenant Middleware → 切換 DB 連線到 ai_erp_tenant_{id}_db
 5. 所有後續操作都在該租戶 DB 上執行
 ```
 
