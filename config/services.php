@@ -35,4 +35,11 @@ return [
         ],
     ],
 
+    'openai' => [
+        'api_key' => env('OPENAI_API_KEY'),
+        'model' => env('OPENAI_MODEL', 'gpt-4o'),
+        // LLM API 逾時秒數，對齊 docs/spec/01-phase1-backend.md 的 10 秒要求。
+        'timeout' => (int) env('OPENAI_TIMEOUT', 10),
+    ],
+
 ];

@@ -2,7 +2,12 @@
 
 namespace App\Providers;
 
+use App\Services\Ai\LlmGateway;
+use App\Services\Ai\OpenAiGateway;
+use App\Services\Tenant\DefaultTenantQueryExecutor;
 use App\Services\Tenant\TenantManager;
+use App\Services\Tenant\TenantQueryExecutor;
+use Illuminate\Contracts\Config\Repository;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -14,6 +19,25 @@ class AppServiceProvider extends ServiceProvider
     {
         // 每個 request 一個 TenantManager 實例，避免跨 request 狀態殘留。
         $this->app->scoped(TenantManager::class);
+
+        // LlmGateway 的 production 預設是 OpenAiGateway（目前為空殼，chat() 會丟
+        // LogicException）。測試必須用 $this->app->instance() 覆蓋成 FakeLlmGateway。
+        // Singleton 因為 gateway 無狀態、constructor 只吃 config，不需要每 request 重建。
+        $this->app->singleton(LlmGateway::class, function ($app): OpenAiGateway {
+            /** @var Repository $config */
+            $config = $app->make('config');
+
+            return new OpenAiGateway(
+                apiKey: (string) $config->get('services.openai.api_key', ''),
+                model: (string) $config->get('services.openai.model', 'gpt-4o'),
+                timeoutSeconds: (int) $config->get('services.openai.timeout', 10),
+            );
+        });
+
+        // TenantQueryExecutor：production 走 DefaultTenantQueryExecutor
+        // （Phase 1 stub 永遠用預設連線，Phase 1 收尾時改為按 tenant 切 DB）。
+        // 測試用 Tests\Fakes\FakeTenantQueryExecutor 取代。
+        $this->app->bind(TenantQueryExecutor::class, DefaultTenantQueryExecutor::class);
     }
 
     /**
