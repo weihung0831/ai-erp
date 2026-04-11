@@ -9,7 +9,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Git 規則
 
 - **禁止擅自 commit 或 push**，所有 commit 和 push 操作必須經過使用者明確同意後才能執行
-- Commit message 必須附上 `Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>` 作為單行 footer，標示 AI 協作
+- Commit message **只寫 title 一行 + 空行 + `Co-Authored-By` footer**，不要寫 body / 條列解釋 / 多段描述。格式如下：
+
+  ```
+  chore(deploy): add zbpack.json for Zeabur Laravel deploy
+
+  Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
+  ```
+
+  為什麼：使用者看 diff 跟 file 本身就知道做了什麼，不需要 commit message 重複解釋。寫 body 反而是噪音。
 
 ## 設計文件為唯一真實來源
 
