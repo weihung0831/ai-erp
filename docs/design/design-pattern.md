@@ -8,6 +8,14 @@
 
 本專案採用的設計模式，確保程式碼一致性和可維護性。
 
+## 設計原則
+
+本專案遵守 **SOLID 原則**，各 pattern 的設計皆以此為基礎。以下補充 SOLID 以外、需要額外留意的原則：
+
+- **YAGNI** — 只實作當前 Phase 確認的功能，不預建未來 Phase 的介面或抽象
+- **KISS** — 優先使用 Laravel 內建機制（FormRequest、Middleware、Service Provider），不自己造輪子
+- **Composition over Inheritance** — Service 之間透過 constructor injection 組合，不建立繼承階層
+
 ## 後端設計模式
 
 > **注意：** Web Controller（`Controllers/Web/`）只負責回傳 Blade view，不呼叫 Service 也不操作資料庫。以下 pattern 僅適用於 API Controller（`Controllers/Api/`）和 Service 層。
@@ -271,9 +279,57 @@ class RetryHandler
 }
 ```
 
-### 8. Observer Pattern（Laravel Events）
+### 8. Exception Pattern
 
-> 注意：Observer Pattern 後續的 DTO 和前端 Pattern 接續編號為 9、10、11。
+Service 層拋出的領域例外（domain exception），與例外在各層的流動規則。
+
+**規則：**
+- Service 拋 domain exception，Controller 用 `try/catch` 轉為 JSON 錯誤回應
+- Repository 不拋自訂例外，讓 Eloquent 原生例外（`ModelNotFoundException` 等）自然往上丟
+- 每個 domain exception 用 named constructor 表達語義，不直接 `new`
+- Exception 帶 `reasonCode`（程式判斷用）和 `message`（日誌用），Controller 不直接回傳 `message` 給使用者
+- Domain exception 放在所屬 Service 目錄，不集中到 `app/Exceptions/`
+
+**流向：**
+```
+Repository → Eloquent exception（原生，不包裝）
+Service    → Domain exception（自訂，named constructor）
+Controller → catch → 對使用者友善的 JSON error response
+```
+
+**範例：**
+```php
+// app/Services/Ai/InvalidSqlException.php（與 SqlValidator 同目錄）
+final class InvalidSqlException extends RuntimeException
+{
+    public function __construct(
+        public readonly string $reasonCode,
+        string $message,
+    ) {
+        parent::__construct($message);
+    }
+
+    public static function notSelect(string $sql): self
+    {
+        return new self('not_select', '只允許 SELECT 語句');
+    }
+}
+
+// Controller 統一轉為使用者友善訊息
+public function handle(ChatRequest $request, QueryEngine $queryEngine): JsonResponse
+{
+    try {
+        $result = $queryEngine->handle(...);
+        return response()->json($result->toArray());
+    } catch (InvalidSqlException) {
+        return response()->json(['message' => '無法處理此查詢'], 422);
+    }
+}
+```
+
+### 9. Observer Pattern（Laravel Events）
+
+> 注意：Observer Pattern 後續的 DTO、Fake、前端 Pattern 接續編號為 10-13。
 
 使用 Laravel Event/Listener 解耦副作用邏輯。
 
@@ -293,13 +349,14 @@ class RetryHandler
 - 副作用透過 Event 觸發 Listener 處理
 - Listener 可以設為 queue job 非同步執行
 
-### 9. DTO（Data Transfer Object）
+### 10. DTO 與 Value Object
 
-API 請求和回應使用 DTO，不直接傳遞 array。
+API 請求和回應使用 DTO，Service 內部使用 Value Object，不直接傳遞 array。
 
-DTO 與 Laravel FormRequest 的分工：
+**三者分工：**
 - **FormRequest** — 驗證 HTTP 請求參數（`ChatFormRequest extends FormRequest`）
-- **DTO** — Service 層之間傳遞的資料物件（`ChatResponseDto`），不處理驗證
+- **DTO** — 跨層傳遞的資料物件（`ChatResponseDto`），由 Controller 呼叫 `toArray()` 序列化為 JSON
+- **Value Object** — Service 內部的不可變物件（`LlmResponse`），不跨 API boundary，與所屬 Service 同目錄
 
 **結構：**
 ```
@@ -339,9 +396,58 @@ class ChatResponseDto
 }
 ```
 
+### 11. Fake Pattern（測試替身）
+
+外部 I/O 的 interface 提供 Fake 實作，讓單元測試不打真實 API 或 DB。
+
+**結構：**
+```
+tests/Fakes/
+├── FakeLlmGateway.php
+└── FakeTenantQueryExecutor.php
+```
+
+**規則：**
+- 只有涉及外部 I/O（LLM API、DB 連線切換）的 interface 才建 Fake
+- Fake 放在 `tests/Fakes/`，命名為 `Fake` + interface 名稱
+- 測試中透過 `$this->app->instance()` 覆蓋 production 綁定
+- Fake 用 queue 機制塞 canned response，支援 `shouldFailWith()` 模擬錯誤
+- Fake 記錄所有呼叫（`$calls`），測試可 assert 傳入參數
+- 整合測試（Golden Test）打真實 DB，不用 Fake
+
+**範例：**
+```php
+// tests/Fakes/FakeLlmGateway.php
+final class FakeLlmGateway implements LlmGateway
+{
+    /** @var list<LlmResponse> */
+    private array $queuedResponses = [];
+    public array $calls = [];
+
+    public function queueResponse(LlmResponse $response): self
+    {
+        $this->queuedResponses[] = $response;
+        return $this;
+    }
+
+    public function chat(array $messages, array $functions = []): LlmResponse
+    {
+        $this->calls[] = ['messages' => $messages, 'functions' => $functions];
+        return array_shift($this->queuedResponses) ?? new LlmResponse(
+            functionName: null, functionArguments: [], content: null, tokensUsed: 0,
+        );
+    }
+}
+
+// 測試中使用
+$fake = new FakeLlmGateway;
+$fake->queueResponse(new LlmResponse(...));
+$this->app->instance(LlmGateway::class, $fake);
+```
+
 ## 前端設計模式
 
-### 10. Component Pattern（Blade 元件化）
+### 12. Component Pattern（Blade 元件化）
 
 所有 UI 以 Blade Component 封裝，像 Vue component 一樣可重複使用。
 
@@ -402,7 +508,7 @@ resources/views/components/
 </div>
 ```
 
-### 11. Store Pattern（Alpine.js 狀態管理）
+### 13. Store Pattern（Alpine.js 狀態管理）
 
 頁面級的狀態用 Alpine.js `Alpine.store()` 集中管理，避免 props drilling。
 
@@ -463,6 +569,31 @@ document.addEventListener('alpine:init', () => {
 
 ## 共用原則
 
+### API 回應格式
+
+**成功���應：**
+
+| 情境 | 格式 | HTTP Status |
+|------|------|-------------|
+| 列表資料 | `{"data": [...]}` | 200 |
+| DTO 回傳 | DTO `toArray()` 直接展開為 flat JSON | 200 |
+| 操作完成（無資料） | `{"message": "..."}` | 200 |
+
+**錯誤回應：**
+
+| 情境 | 格式 | HTTP Status |
+|------|------|-------------|
+| 驗證失敗（FormRequest） | `{"message": "...", "errors": {"field": ["..."]}}` | 422（Laravel 內建） |
+| 業務邏輯錯誤 | `{"message": "..."}` | 422 |
+| 權限不足 / 資源不存在 | `{"message": "..."}` | 403 |
+| 未認證 | `{"message": "Unauthenticated."}` | 401（Sanctum 內建） |
+| 伺服器錯誤 | `{"message": "..."}` | 500 |
+
+**規則：**
+- 錯誤一律用 `message` key，與 Laravel 內建 exception handler 一致
+- 不自創 error code，HTTP status code 即分類依據
+- 列表用 `data` key 包裹；DTO 直接展開不包裹
+
 ### 命名規範
 
 | 類型 | 規範 | 範例 |
@@ -471,6 +602,11 @@ document.addEventListener('alpine:init', () => {
 | Service | PascalCase | `QueryEngine` |
 | Repository | PascalCase + Repository 後綴 | `ChatHistoryRepository` |
 | DTO | PascalCase | `ChatResponse` |
+| Value Object | PascalCase，`final readonly class` | `LlmResponse` |
+| FormRequest | PascalCase + Request 後綴，依領域分子目錄 | `Chat/ChatRequest` |
+| Enum | PascalCase，TitleCase 成員 | `ConfidenceLevel` |
+| Domain Exception | PascalCase + Exception 後綴 | `InvalidSqlException` |
+| Fake | `Fake` 前綴 + interface 名稱 | `FakeLlmGateway` |
 | Event | PascalCase，過去式 | `QueryExecuted` |
 | Listener | PascalCase + Listener 後綴 | `LogQueryListener` |
 | Factory | PascalCase + Factory 後綴 | `LlmGatewayFactory` |
@@ -485,3 +621,16 @@ document.addEventListener('alpine:init', () => {
 - 不使用 facade（`DB::`, `Auth::` 等）在 Service 層，改用注入
 - Controller 可以使用 facade（Laravel 慣例）
 - 綁定在 `AppServiceProvider` 或專用 Provider 中
+
+**綁定方式選擇：**
+
+| 方式 | 適用場景 | 範例 |
+|------|----------|------|
+| `singleton` | 無狀態、constructor 只吃 config | `LlmGateway` → `OpenAiGateway` |
+| `scoped` | 有 request-scoped 狀態 | `TenantManager`（每 request 綁定一個 tenant） |
+| `bind` | 每次解析需要新實例 | `TenantQueryExecutor` → `DefaultTenantQueryExecutor` |
+
+**何時拆專用 Provider：**
+- 同一類綁定 ≥ 3 個時，拆到專用 Provider（如 `RepositoryServiceProvider`）
+- 專用 Provider 實作 `DeferrableProvider`，容器只在需要時解析
+- 其餘放 `AppServiceProvider`
