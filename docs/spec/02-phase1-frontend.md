@@ -11,15 +11,12 @@
 - [x] 忘記密碼頁
 - [x] 重設密碼頁
 - [x] 聊天頁（主頁面）
-- [ ] 快捷按鈕管理頁
-- [ ] 敏感欄位管理頁
 
 ### 元件（使用中）
 - [x] `<x-layout.page>` / `<x-layout.sidebar>` / `<x-layout.header>`
-- [x] `<x-chat.bubble>` / `<x-chat.input>` / `<x-chat.quick-actions>` / `<x-chat.confidence>` / `<x-chat.typing>` / `<x-chat.result-table>` / `<x-chat.result-number>`
-- [x] `<x-data.table>` / `<x-data.pagination>` / `<x-data.empty-state>`
+- [x] `<x-chat.bubble>` / `<x-chat.input>` / `<x-chat.confidence>` / `<x-chat.typing>` / `<x-chat.result-table>` / `<x-chat.result-number>`
 - [x] `<x-form.input>`
-- [x] `<x-ui.button>` / `<x-ui.alert>` / `<x-ui.modal>` / `<x-ui.dropdown>` / `<x-ui.loading>` / `<x-ui.toast>` / `<x-ui.tooltip>`
+- [x] `<x-ui.button>` / `<x-ui.alert>` / `<x-ui.dropdown>` / `<x-ui.loading>`
 
 ### Alpine.js Store
 - [x] `chatStore`
@@ -142,47 +139,6 @@ x-data="{
 
 **串接 API：**
 - `POST /api/reset-password` → 重設密碼
-
-### 6. 快捷按鈕管理頁
-
-**路由：** `GET /admin/quick-actions`
-**Web Controller：** `Web\AdminController@quickActions`
-**用途：** 管理員設定聊天頁顯示的快捷按鈕
-
-**頁面結構：**
-```
-<x-layout.page title="快捷按鈕管理">
-    ├── <x-data.table>
-    │   ├── 欄位：標籤、查詢內容、排序、啟用狀態
-    │   └── 操作：編輯、刪除
-    ├── <x-ui.button> 新增快捷按鈕 → <x-ui.modal>
-</x-layout.page>
-```
-
-**串接 API：**
-- `GET /api/admin/quick-actions`
-- `POST /api/admin/quick-actions`
-- `DELETE /api/admin/quick-actions/{id}`
-
-### 7. 敏感欄位管理頁
-
-**路由：** `GET /admin/schema-fields`
-**Web Controller：** `Web\AdminController@schemaFields`
-**用途：** 管理員標記敏感欄位（restricted）
-
-**頁面結構：**
-```
-<x-layout.page title="欄位權限管理">
-    ├── Table 選擇下拉
-    ├── <x-data.table>
-    │   ├── 欄位：欄位名稱、中文名稱、型別、狀態（正常/受限）
-    │   └── 操作：切換受限狀態（toggle）
-</x-layout.page>
-```
-
-**串接 API：**
-- `GET /api/admin/schema-fields?table=customers`
-- `PATCH /api/admin/schema-fields/{table}/{column}` → 切換 restricted 狀態
 
 ## Axios 設定
 

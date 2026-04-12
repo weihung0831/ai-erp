@@ -34,9 +34,9 @@ AI ERP 平台，讓客戶用對話建構和查詢 ERP 系統。團隊本身是 E
 **Phase 1 後端完成、前端整合中。** Laravel 13 + Sanctum 已 scaffold、42 個 Blade Component 已全數實作、Chat-to-query 後端 17 支 API 全部到位（含 SSE 串流）、Golden Test 150 筆 100% pass。
 
 **已建立的核心目錄：**
-- `app/Http/Controllers/Api/` — AuthController, ChatController, StreamChatController, ChatHistoryController, QuickActionController, Admin/{QuickActionController, SchemaFieldController}
+- `app/Http/Controllers/Api/` — AuthController, ChatController, StreamChatController, ChatHistoryController
 - `app/Services/` — Ai/（LlmGateway, OpenAiGateway, QueryEngine, SqlValidator, ConfidenceEstimator）, Schema/, Tenant/（TenantManager, TenantDatabaseManager）
-- `app/Models/` — ChatHistory, Conversation, QuickAction, SchemaFieldRestriction, Tenant, User
+- `app/Models/` — ChatHistory, Conversation, SchemaFieldRestriction, Tenant, User
 - `app/Repositories/` — Contracts/ + Eloquent/ 實作（Repository Pattern 已套用）
 - `app/DataTransferObjects/` — Chat/, Schema/
 - `app/Enums/` — ChatResponseType, ConfidenceLevel, UserRole, ValueFormat

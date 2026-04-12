@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\Web\AdminController;
 use App\Http\Controllers\Web\AuthPageController;
 use App\Http\Controllers\Web\ChatPageController;
 use Illuminate\Support\Facades\Route;
@@ -13,9 +12,3 @@ Route::get('/reset-password/{token}', [AuthPageController::class, 'resetPassword
 // Chat (main)
 Route::get('/', fn () => redirect()->route('chat'));
 Route::get('/chat', [ChatPageController::class, 'index'])->name('chat');
-
-// Admin
-Route::prefix('admin')->group(function () {
-    Route::get('/quick-actions', [AdminController::class, 'quickActions'])->name('admin.quick-actions');
-    Route::get('/schema-fields', [AdminController::class, 'schemaFields'])->name('admin.schema-fields');
-});

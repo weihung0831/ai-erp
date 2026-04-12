@@ -47,12 +47,6 @@
                 </template>
             </nav>
 
-            {{-- Nav --}}
-            <nav class="sidebar-admin-nav">
-                <a href="/admin/quick-actions" class="sidebar-item">快捷按鈕</a>
-                <a href="/admin/schema-fields" class="sidebar-item">欄位權限</a>
-            </nav>
-
             {{-- User menu --}}
             <div class="sidebar-footer" x-data="{ open: false }" @click.outside="open = false">
                 <button type="button" class="sidebar-user-btn" @click="open = !open">
@@ -192,18 +186,6 @@
 
             {{-- Bottom area: quick actions + input --}}
             <div class="p-6 pt-3 stack-sm" style="border-top: 1px solid var(--border);">
-                {{-- Quick actions (show only when conversation is empty) --}}
-                <template x-if="$store.chat.quickActions.length > 0 && $store.chat.messages.length === 0">
-                    <div class="row-sm">
-                        <template x-for="action in $store.chat.quickActions" :key="action.id">
-                            <button type="button" class="quick-pill"
-                                    @click="$store.chat.send(action.prompt)"
-                                    x-text="action.label">
-                            </button>
-                        </template>
-                    </div>
-                </template>
-
                 {{-- Chat input --}}
                 <form class="row-sm items-end" @submit.prevent="$store.chat.send()">
                     <textarea

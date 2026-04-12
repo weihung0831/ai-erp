@@ -4,13 +4,8 @@ export default {
     input: '',
     loading: false,
     conversationId: null,
-    quickActions: [],
-
     async init() {
-        await Promise.all([
-            this.fetchConversations(),
-            this.fetchQuickActions(),
-        ]);
+        await this.fetchConversations();
     },
 
     async send(message) {
@@ -83,15 +78,6 @@ export default {
         } finally {
             this.loading = false;
             this._scrollToBottom();
-        }
-    },
-
-    async fetchQuickActions() {
-        try {
-            const res = await window.axios.get('/api/quick-actions');
-            this.quickActions = res.data.data || [];
-        } catch {
-            // silent
         }
     },
 
