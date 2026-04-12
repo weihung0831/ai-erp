@@ -110,8 +110,8 @@ class DashboardService
 
             return [
                 $this->metric("{$label}應收帳款", 'finance', ValueFormat::Currency, $curAr, $prevAr),
-                $this->metric("{$label}逾期應收", 'finance', ValueFormat::Currency, $curOverdue, $prevOverdue),
-                $this->metric("{$label}費用", 'finance', ValueFormat::Currency, $curExpense, $prevExpense),
+                $this->metric("{$label}逾期應收", 'finance', ValueFormat::Currency, $curOverdue, $prevOverdue, 'warning'),
+                $this->metric("{$label}費用", 'finance', ValueFormat::Currency, $curExpense, $prevExpense, 'warning'),
                 $this->metric("{$label}收款", 'finance', ValueFormat::Currency, $curPayment, $prevPayment),
             ];
         });
@@ -139,7 +139,7 @@ class DashboardService
                 $this->metric("{$label}新增客戶", 'operations', ValueFormat::Count, $curCustomers, $prevCustomers),
                 $this->metric("{$label}新增產品", 'operations', ValueFormat::Count, $curProducts, $prevProducts),
                 $this->metric("{$label}採購單", 'operations', ValueFormat::Count, $curPo, $prevPo),
-                $this->metric("{$label}庫存不足", 'operations', ValueFormat::Count, $lowStock, $lowStock),
+                $this->metric("{$label}庫存不足", 'operations', ValueFormat::Count, $lowStock, $lowStock, 'warning'),
             ];
         });
     }
@@ -165,6 +165,7 @@ class DashboardService
         ValueFormat $format,
         int|float $value,
         int|float|null $previousValue = null,
+        string $severity = 'normal',
     ): DashboardMetric {
         $trend = null;
         if ($previousValue !== null) {
@@ -184,6 +185,7 @@ class DashboardService
             value: $value,
             formattedValue: $format->format($value),
             trend: $trend,
+            severity: $severity,
         );
     }
 }

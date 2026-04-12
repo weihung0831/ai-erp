@@ -21,6 +21,8 @@ use Illuminate\Support\Facades\DB;
  */
 class TenantDemoSeeder extends Seeder
 {
+    private const MONTHS_BACK = 17;
+
     public function run(): void
     {
         $this->seedCategories();
@@ -322,7 +324,7 @@ class TenantDemoSeeder extends Seeder
         $productPrices = DB::table('products')->pluck('unit_price', 'id')->all();
 
         // 2025-11 到 2026-04 每月 ~100 筆
-        for ($monthOffset = 5; $monthOffset >= 0; $monthOffset--) {
+        for ($monthOffset = self::MONTHS_BACK; $monthOffset >= 0; $monthOffset--) {
             $baseDate = now()->subMonths($monthOffset)->startOfMonth();
             $daysInMonth = $baseDate->daysInMonth;
             $ordersThisMonth = $monthOffset === 0 ? rand(40, 60) : rand(90, 110);
@@ -501,7 +503,7 @@ class TenantDemoSeeder extends Seeder
 
         $statuses = ['received', 'received', 'received', 'submitted', 'draft'];
 
-        for ($monthOffset = 5; $monthOffset >= 0; $monthOffset--) {
+        for ($monthOffset = self::MONTHS_BACK; $monthOffset >= 0; $monthOffset--) {
             $baseDate = now()->subMonths($monthOffset)->startOfMonth();
 
             foreach ($supplierProducts as $supplierId => $productIds) {
@@ -559,7 +561,7 @@ class TenantDemoSeeder extends Seeder
         $count = 0;
 
         // 每月固定費用
-        for ($monthOffset = 5; $monthOffset >= 0; $monthOffset--) {
+        for ($monthOffset = self::MONTHS_BACK; $monthOffset >= 0; $monthOffset--) {
             $date = now()->subMonths($monthOffset)->startOfMonth();
             $monthStr = $date->format('Y-m');
 

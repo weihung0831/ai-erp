@@ -2,25 +2,8 @@
 <div class="flex h-screen"
      x-data="{
         sidebarOpen: localStorage.getItem('sidebarOpen') !== 'false',
-        showLogoutModal: false,
         showDeleteModal: false,
         deleteTargetId: null,
-        loggingOut: false,
-        async confirmLogout() {
-            this.showLogoutModal = false;
-            this.loggingOut = true;
-            const minDelay = new Promise(r => setTimeout(r, 2000));
-            try {
-                await Promise.all([
-                    window.axios.post('/api/logout'),
-                    minDelay,
-                ]);
-            } catch {
-                await minDelay;
-            }
-            $store.auth.clearToken();
-            window.location.href = '/login';
-        },
      }"
      x-init="
         if (!$store.auth.loggedIn) { window.location.href = '/login'; return; }

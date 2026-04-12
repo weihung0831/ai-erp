@@ -551,7 +551,10 @@ code, pre {
     font-family: var(--font-sans);
     font-size: 20px;
     font-weight: 700;
-    color: #ffffff;
+    background: linear-gradient(135deg, var(--brand) 0%, #a8edba 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
     border-bottom: 1px solid var(--sidebar-divider);
     margin-bottom: 16px;
 }
@@ -579,16 +582,21 @@ code, pre {
 .sidebar-toggle {
     background: transparent;
     border: none;
-    color: var(--sidebar-fg);
-    font-size: 18px;
+    color: var(--text-tertiary);
+    font-size: 13px;
     cursor: pointer;
-    padding: 4px 8px;
-    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
     flex-shrink: 0;
     margin-left: auto;
     transition: color 150ms ease, background 150ms ease;
 }
-.sidebar-toggle:hover { color: #ffffff; background: var(--sidebar-hover); }
+.sidebar-toggle:hover { color: var(--text-primary); background: var(--sidebar-hover); }
+.sidebar-toggle:focus { outline: none; }
 .sidebar-body {
     display: flex;
     flex-direction: column;
@@ -723,11 +731,12 @@ code, pre {
     background: var(--sidebar-hover);
     color: #ffffff;
 }
-/* === Chat scroll-to-top ================================================== */
-.chat-scroll-top {
-    position: absolute;
+/* === Scroll to top (shared) ============================================== */
+.chat-scroll-top,
+.scroll-top-btn {
+    position: fixed;
     bottom: 100px;
-    right: 24px;
+    right: 32px;
     background: var(--bg-card);
     color: var(--text-secondary);
     box-shadow: var(--shadow-card);
@@ -739,9 +748,16 @@ code, pre {
     z-index: 10;
     transition: background 150ms ease, color 150ms ease;
 }
-.chat-scroll-top:hover {
+.chat-scroll-top:hover,
+.scroll-top-btn:hover {
     background: var(--brand);
     color: #000;
+}
+.chat-scroll-top:focus,
+.scroll-top-btn:focus {
+    outline: none;
+    background: var(--bg-card);
+    color: var(--text-secondary);
 }
 
 /* === Confirm action card ================================================= */
@@ -942,27 +958,33 @@ code, pre {
     letter-spacing: -0.5px;
     font-variant-numeric: tabular-nums;
 }
-/* Currency vs count accent */
+/* Currency vs count vs warning accent */
 .dashboard-stat-card.is-currency::before { background: var(--brand); }
 .dashboard-stat-card.is-count::before { background: var(--focus); }
 .dashboard-stat-card.is-count .stat-icon { background: rgba(83, 157, 245, 0.12); color: var(--focus); }
+.dashboard-stat-card.is-warning::before { background: var(--warning); }
+.dashboard-stat-card.is-warning .stat-icon { background: rgba(255, 164, 43, 0.12); color: var(--warning); }
 
 /* === Dashboard page header ================================================ */
 .dashboard-header {
     display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 16px;
+    flex-direction: column;
+    gap: 4px;
 }
 .dashboard-header h1 {
     font-size: 24px;
     font-weight: 700;
     color: var(--text-primary);
 }
+.dashboard-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
 .dashboard-header .dashboard-subtitle {
     font-size: 14px;
     color: var(--text-tertiary);
-    margin-top: 4px;
 }
 
 /* === Dashboard stat trend ================================================== */
@@ -982,24 +1004,30 @@ code, pre {
     padding-bottom: 8px;
     border-bottom: 1px solid var(--border);
 }
-/* === Dashboard period selector ============================================= */
-.dash-period-select {
-    appearance: none;
+/* === Dashboard period toggle ============================================== */
+.dash-period-group {
+    display: flex;
+    gap: 4px;
     background: var(--bg-white);
-    color: var(--text-primary);
-    border: 1px solid var(--border-strong);
     border-radius: 9999px;
-    padding: 8px 36px 8px 16px;
-    font-size: 14px;
+    padding: 3px;
+}
+.dash-period-btn {
+    padding: 6px 14px;
+    border-radius: 9999px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 13px;
     font-weight: 600;
     cursor: pointer;
-    background-image: url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 24 24' fill='%23b3b3b3' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 12px center;
-    transition: border-color 150ms ease, background 150ms ease;
+    transition: background 150ms ease, color 150ms ease;
 }
-.dash-period-select:hover { border-color: var(--brand); background: var(--bg-sand); }
-.dash-period-select:focus { outline: none; border-color: var(--brand); }
+.dash-period-btn:hover { color: var(--text-primary); }
+.dash-period-btn.is-active {
+    background: var(--brand);
+    color: #000;
+}
 .dash-content {
     padding: 32px 40px;
     max-width: 1200px;
@@ -1553,4 +1581,81 @@ code, pre {
     width: 16px;
     height: 16px;
     accent-color: var(--brand);
+}
+
+/* === Mobile sidebar toggle & overlay ====================================== */
+.sidebar-mobile-toggle {
+    display: none;
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    z-index: 40;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+.sidebar-mobile-toggle:hover { color: var(--text-primary); background: var(--bg-white); }
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 49;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+/* === Responsive ========================================================== */
+@media (max-width: 768px) {
+    .sidebar-mobile-toggle { display: flex; }
+    .sidebar-overlay { display: block; }
+
+    /* Sidebar: top sheet on mobile */
+    .sidebar {
+        position: fixed;
+        z-index: 50;
+        top: 0;
+        left: 0;
+        right: 0;
+        width: 100% !important;
+        height: auto;
+        max-height: 80vh;
+        overflow-y: auto;
+        border-bottom: 1px solid var(--border);
+        box-shadow: var(--shadow-modal);
+        transition: transform 200ms ease, opacity 200ms ease;
+    }
+    .sidebar .sidebar-head { display: none; }
+    .sidebar .sidebar-body { padding-bottom: 8px; }
+    .sidebar.is-collapsed {
+        transform: translateY(-100%);
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    /* Main content needs top padding for hamburger */
+    .dash-content { padding: 60px 16px 20px; }
+    .chat-welcome { padding: 60px 16px 24px; }
+    #chat-messages { padding-top: 60px; }
+
+    /* Dashboard */
+    .dashboard-grid { grid-template-columns: 1fr; }
+    .dashboard-stat-card .stat-value { font-size: 24px; }
+
+    /* Chat */
+    .chat-welcome-title { font-size: 22px; }
+    .chat-welcome-hints { flex-direction: column; }
+    .chat-bottom-bar { padding: 8px 12px 12px; }
+
+    /* Bubbles */
+    .bubble-ai { max-width: 95%; padding: 16px; }
+    .bubble-user { max-width: 85%; }
+
+    /* Scroll top: above input bar on mobile */
+    .chat-scroll-top { bottom: 100px; right: 16px; }
+    .scroll-top-btn { bottom: 24px; right: 16px; }
 }

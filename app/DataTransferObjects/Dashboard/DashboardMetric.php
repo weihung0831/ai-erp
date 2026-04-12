@@ -19,6 +19,7 @@ final readonly class DashboardMetric
         public int|float $value,
         public string $formattedValue,
         public ?float $trend = null,
+        public string $severity = 'normal',
     ) {}
 
     public function toArray(): array
@@ -30,6 +31,7 @@ final readonly class DashboardMetric
             'value' => $this->value,
             'formatted_value' => $this->formattedValue,
             'trend' => $this->trend,
+            'severity' => $this->severity,
         ];
     }
 }
