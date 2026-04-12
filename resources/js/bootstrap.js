@@ -1,8 +1,8 @@
-import axios from 'axios';
+import './axios';
 import Alpine from 'alpinejs';
+import authStore from './stores/auth';
 
-window.axios = axios;
-window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
+Alpine.store('auth', authStore);
 
 window.Alpine = Alpine;
 Alpine.start();
