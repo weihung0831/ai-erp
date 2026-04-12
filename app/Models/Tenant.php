@@ -23,4 +23,17 @@ class Tenant extends Model
     {
         return $this->hasMany(User::class);
     }
+
+    /**
+     * 產業別的中文標籤，用於 Query Engine 的 system prompt。
+     */
+    public function domainContextLabel(): ?string
+    {
+        return match ($this->industry) {
+            'restaurant' => '餐飲業',
+            'retail' => '零售業',
+            'manufacturing' => '製造業',
+            default => $this->industry,
+        };
+    }
 }

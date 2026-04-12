@@ -5,7 +5,7 @@ namespace Tests\Unit\Services\Schema;
 use App\DataTransferObjects\Schema\SchemaContext;
 use App\DataTransferObjects\Schema\TableMetadata;
 use App\Repositories\Contracts\SchemaFieldRestrictionRepositoryInterface;
-use App\Services\Schema\SchemaIntrospector;
+use App\Services\Schema\ConfigSchemaIntrospector;
 use Illuminate\Config\Repository;
 use Illuminate\Support\Collection;
 use PHPUnit\Framework\TestCase;
@@ -23,7 +23,7 @@ final class SchemaIntrospectorTest extends TestCase
 
     public function test_hydrates_schema_context_from_config_fixture(): void
     {
-        $introspector = new SchemaIntrospector(new Repository([
+        $introspector = new ConfigSchemaIntrospector(new Repository([
             'schema_fixtures' => [
                 'tenants' => [
                     42 => [
@@ -71,7 +71,7 @@ final class SchemaIntrospectorTest extends TestCase
 
     public function test_preserves_restricted_flag_for_sensitive_columns(): void
     {
-        $introspector = new SchemaIntrospector(new Repository([
+        $introspector = new ConfigSchemaIntrospector(new Repository([
             'schema_fixtures' => [
                 'tenants' => [
                     1 => [
@@ -109,7 +109,7 @@ final class SchemaIntrospectorTest extends TestCase
 
     public function test_domain_context_is_null_when_fixture_omits_it(): void
     {
-        $introspector = new SchemaIntrospector(new Repository([
+        $introspector = new ConfigSchemaIntrospector(new Repository([
             'schema_fixtures' => ['tenants' => [1 => ['tables' => []]]],
         ]), $this->emptyRestrictionRepo());
 
@@ -121,7 +121,7 @@ final class SchemaIntrospectorTest extends TestCase
 
     public function test_throws_when_tenant_fixture_not_found(): void
     {
-        $introspector = new SchemaIntrospector(new Repository([
+        $introspector = new ConfigSchemaIntrospector(new Repository([
             'schema_fixtures' => ['tenants' => []],
         ]), $this->emptyRestrictionRepo());
 
@@ -140,7 +140,7 @@ final class SchemaIntrospectorTest extends TestCase
             'schema_fixtures' => require __DIR__.'/../../../../config/schema_fixtures.php',
         ]);
 
-        $context = (new SchemaIntrospector($config, $this->emptyRestrictionRepo()))->introspect(1);
+        $context = (new ConfigSchemaIntrospector($config, $this->emptyRestrictionRepo()))->introspect(1);
 
         $this->assertSame('餐飲業', $context->domainContext);
         $this->assertContains('orders', $context->tableNames());

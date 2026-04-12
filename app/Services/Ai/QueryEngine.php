@@ -389,6 +389,8 @@ final class QueryEngine
 
         foreach ($table->columns as $column) {
             if ($column->restricted) {
+                $lines[] = "- {$column->name}: {$column->displayName} ⛔ 敏感資料，禁止查詢。使用者問到請直接回覆「此資料受限，無法查詢」，不要產生 SQL";
+
                 continue;
             }
             $line = "- {$column->name} ({$column->type}): {$column->displayName}";

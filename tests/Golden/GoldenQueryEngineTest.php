@@ -8,7 +8,7 @@ use App\Services\Ai\ConfidenceEstimator;
 use App\Services\Ai\LlmResponse;
 use App\Services\Ai\QueryEngine;
 use App\Services\Ai\SqlValidator;
-use App\Services\Schema\SchemaIntrospector;
+use App\Services\Schema\ConfigSchemaIntrospector;
 use Illuminate\Config\Repository;
 use Illuminate\Support\Collection;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -120,7 +120,7 @@ final class GoldenQueryEngineTest extends TestCase
 
         return new QueryEngine(
             llm: $this->llm,
-            introspector: new SchemaIntrospector($config, $restrictionRepo),
+            introspector: new ConfigSchemaIntrospector($config, $restrictionRepo),
             validator: new SqlValidator,
             executor: $this->executor,
             confidenceEstimator: new ConfidenceEstimator,

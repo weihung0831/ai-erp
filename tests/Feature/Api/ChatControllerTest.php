@@ -6,6 +6,8 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Services\Ai\LlmGateway;
 use App\Services\Ai\LlmResponse;
+use App\Services\Schema\ConfigSchemaIntrospector;
+use App\Services\Schema\SchemaIntrospector;
 use App\Services\Tenant\TenantQueryExecutor;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use RuntimeException;
@@ -35,9 +37,10 @@ class ChatControllerTest extends TestCase
         $this->llm = new FakeLlmGateway;
         $this->executor = new FakeTenantQueryExecutor;
 
-        // 覆蓋 production binding，讓 QueryEngine 拿到 Fake 實作
+        // 覆蓋 production binding，讓 QueryEngine 拿到 Fake / Config 實作
         $this->app->instance(LlmGateway::class, $this->llm);
         $this->app->instance(TenantQueryExecutor::class, $this->executor);
+        $this->app->bind(SchemaIntrospector::class, ConfigSchemaIntrospector::class);
 
         // 為 dynamic tenant id 塞 schema fixture。config()->set 走 dot 路徑
         // 只會覆寫該 key，不影響 config/schema_fixtures.php 其他 tenant 的資料。

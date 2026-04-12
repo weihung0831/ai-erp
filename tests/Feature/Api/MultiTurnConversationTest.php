@@ -8,6 +8,8 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Services\Ai\LlmGateway;
 use App\Services\Ai\LlmResponse;
+use App\Services\Schema\ConfigSchemaIntrospector;
+use App\Services\Schema\SchemaIntrospector;
 use App\Services\Tenant\TenantQueryExecutor;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -39,6 +41,7 @@ class MultiTurnConversationTest extends TestCase
 
         $this->app->instance(LlmGateway::class, $this->llm);
         $this->app->instance(TenantQueryExecutor::class, $this->executor);
+        $this->app->bind(SchemaIntrospector::class, ConfigSchemaIntrospector::class);
 
         config()->set("schema_fixtures.tenants.{$this->tenant->id}", [
             'domain_context' => '餐飲業',

@@ -4,6 +4,8 @@ namespace App\Providers;
 
 use App\Services\Ai\LlmGateway;
 use App\Services\Ai\OpenAiGateway;
+use App\Services\Schema\DatabaseSchemaIntrospector;
+use App\Services\Schema\SchemaIntrospector;
 use App\Services\Tenant\DefaultTenantQueryExecutor;
 use App\Services\Tenant\TenantManager;
 use App\Services\Tenant\TenantQueryExecutor;
@@ -35,10 +37,11 @@ class AppServiceProvider extends ServiceProvider
             );
         });
 
-        // TenantQueryExecutor：production 走 DefaultTenantQueryExecutor
-        // （Phase 1 stub 永遠用預設連線，Phase 1 收尾時改為按 tenant 切 DB）。
-        // 測試用 Tests\Fakes\FakeTenantQueryExecutor 取代。
         $this->app->bind(TenantQueryExecutor::class, DefaultTenantQueryExecutor::class);
+
+        // SchemaIntrospector：production 從 tenant DB 的 schema_metadata 表讀。
+        // 測試直接 new ConfigSchemaIntrospector 傳入 QueryEngine。
+        $this->app->bind(SchemaIntrospector::class, DatabaseSchemaIntrospector::class);
     }
 
     /**

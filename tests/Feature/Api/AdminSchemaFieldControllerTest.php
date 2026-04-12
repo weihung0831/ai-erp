@@ -5,6 +5,8 @@ namespace Tests\Feature\Api;
 use App\Models\SchemaFieldRestriction;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\Schema\ConfigSchemaIntrospector;
+use App\Services\Schema\SchemaIntrospector;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -25,6 +27,8 @@ class AdminSchemaFieldControllerTest extends TestCase
         $this->tenant = Tenant::factory()->create();
         $this->admin = User::factory()->forTenant($this->tenant)->admin()->create();
         $this->user = User::factory()->forTenant($this->tenant)->create();
+
+        $this->app->bind(SchemaIntrospector::class, ConfigSchemaIntrospector::class);
     }
 
     // ── index ──

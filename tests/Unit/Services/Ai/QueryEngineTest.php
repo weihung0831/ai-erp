@@ -10,7 +10,7 @@ use App\Services\Ai\ConfidenceEstimator;
 use App\Services\Ai\LlmResponse;
 use App\Services\Ai\QueryEngine;
 use App\Services\Ai\SqlValidator;
-use App\Services\Schema\SchemaIntrospector;
+use App\Services\Schema\ConfigSchemaIntrospector;
 use Illuminate\Config\Repository;
 use Illuminate\Support\Collection;
 use PHPUnit\Framework\TestCase;
@@ -530,7 +530,7 @@ final class QueryEngineTest extends TestCase
 
     // ── US-7：restricted column protection ──
 
-    public function test_restricted_column_excluded_from_system_prompt(): void
+    public function test_restricted_column_visible_but_marked_forbidden_in_system_prompt(): void
     {
         $engine = $this->makeEngineWithRestrictedColumns();
 
@@ -544,8 +544,12 @@ final class QueryEngineTest extends TestCase
         $engine->handle(new ChatQueryInput(message: '隨便問', tenantId: 1));
 
         $systemMessage = $this->llm->calls[0]['messages'][0]['content'];
-        $this->assertStringNotContainsString('salary', $systemMessage);
-        $this->assertStringContainsString('name', $systemMessage);
+        // restricted 欄位出現在 prompt 但帶禁止標記，LLM 知道存在但不可查
+        $this->assertStringContainsString('salary', $systemMessage);
+        $this->assertStringContainsString('⛔', $systemMessage);
+        $this->assertStringContainsString('禁止查詢', $systemMessage);
+        // 非 restricted 欄位正常顯示型別
+        $this->assertStringContainsString('name (varchar)', $systemMessage);
         $this->assertStringContainsString('total_amount', $systemMessage);
     }
 
@@ -627,7 +631,7 @@ final class QueryEngineTest extends TestCase
 
         return new QueryEngine(
             llm: $llm,
-            introspector: new SchemaIntrospector($config, $this->emptyRestrictionRepo()),
+            introspector: new ConfigSchemaIntrospector($config, $this->emptyRestrictionRepo()),
             validator: new SqlValidator,
             executor: $executor,
             confidenceEstimator: new ConfidenceEstimator,
@@ -668,7 +672,7 @@ final class QueryEngineTest extends TestCase
 
         return new QueryEngine(
             llm: $this->llm,
-            introspector: new SchemaIntrospector($config, $this->emptyRestrictionRepo()),
+            introspector: new ConfigSchemaIntrospector($config, $this->emptyRestrictionRepo()),
             validator: new SqlValidator,
             executor: $this->executor,
             confidenceEstimator: new ConfidenceEstimator,
