@@ -94,6 +94,9 @@ class TenantManager
     /**
      * 動態註冊租戶的 MySQL 連線。沿用主連線的 host/port/credentials，
      * 只替換 database 名稱。
+     *
+     * 若主連線使用 DATABASE_URL，需解析 URL 並替換 database path，
+     * 否則 URL 會覆蓋個別的 database 設定。
      */
     private function registerConnection(Tenant $tenant): void
     {
@@ -102,9 +105,24 @@ class TenantManager
         /** @var array<string, mixed> $base */
         $base = $this->config->get('database.connections.mysql', []);
 
-        $this->config->set("database.connections.{$connectionName}", array_merge($base, [
-            'url' => null,
-            'database' => $tenant->db_name,
-        ]));
+        $overrides = ['database' => $tenant->db_name];
+
+        if (! empty($base['url'])) {
+            $parts = parse_url($base['url']);
+
+            $overrides['url'] = sprintf(
+                '%s://%s%s%s/%s%s',
+                $parts['scheme'] ?? 'mysql',
+                isset($parts['user'])
+                    ? rawurlencode($parts['user']).(isset($parts['pass']) ? ':'.rawurlencode($parts['pass']) : '').'@'
+                    : '',
+                $parts['host'] ?? '',
+                isset($parts['port']) ? ':'.$parts['port'] : '',
+                $tenant->db_name,
+                isset($parts['query']) ? '?'.$parts['query'] : '',
+            );
+        }
+
+        $this->config->set("database.connections.{$connectionName}", array_merge($base, $overrides));
     }
 }
