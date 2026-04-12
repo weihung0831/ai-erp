@@ -11,8 +11,6 @@ use App\Enums\ConfidenceLevel;
 use App\Enums\ValueFormat;
 use App\Services\Schema\SchemaIntrospector;
 use App\Services\Tenant\TenantQueryExecutor;
-use App\Support\CurrencyFormatter;
-use App\Support\NumberFormatter;
 use JsonException;
 use Psr\Log\LoggerInterface;
 use Throwable;
@@ -262,10 +260,7 @@ final class QueryEngine
             return $this->errorResult('查詢沒有回傳結果');
         }
 
-        $formatted = match ($valueFormat) {
-            ValueFormat::Currency => CurrencyFormatter::ntd($scalar),
-            ValueFormat::Count => NumberFormatter::thousands($scalar),
-        };
+        $formatted = $valueFormat->format($scalar);
 
         return new ChatQueryResult(
             reply: str_replace('{value}', $formatted, $replyTemplate),

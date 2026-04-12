@@ -22,7 +22,7 @@
 - [ ] US-10：基本寫入操作
 - [ ] US-11：寫入確認流程
 - [ ] US-12：檔案上傳批量匯入
-- [ ] US-13：Dashboard 指標 API
+- [x] US-13：Dashboard 指標 API
 - [ ] 寫入操作 Golden Test Suite
 
 ## 目標

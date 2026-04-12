@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ChatController;
 use App\Http\Controllers\Api\ChatHistoryController;
+use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\StreamChatController;
 use Illuminate\Support\Facades\Route;
 
@@ -21,5 +22,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('/chat/history', [ChatHistoryController::class, 'index'])->name('api.chat.history');
         Route::get('/chat/history/{conversationUuid}', [ChatHistoryController::class, 'show'])->name('api.chat.history.show');
         Route::delete('/chat/history/{conversationUuid}', [ChatHistoryController::class, 'destroy'])->name('api.chat.history.destroy');
+
+        Route::get('/dashboard', [DashboardController::class, 'index'])->name('api.dashboard');
     });
 });

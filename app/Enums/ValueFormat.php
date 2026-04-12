@@ -2,6 +2,9 @@
 
 namespace App\Enums;
 
+use App\Support\CurrencyFormatter;
+use App\Support\NumberFormatter;
+
 /**
  * QueryEngine 回傳結果的數值顯示格式。
  *
@@ -15,6 +18,17 @@ enum ValueFormat: string
 
     /** 計數：1,234 筆 / 342 個。 */
     case Count = 'count';
+
+    /**
+     * 將數值格式化為顯示字串。
+     */
+    public function format(int|float $value): string
+    {
+        return match ($this) {
+            self::Currency => CurrencyFormatter::ntd($value),
+            self::Count => NumberFormatter::thousands($value),
+        };
+    }
 
     /**
      * 所有 enum 的字串值，供 OpenAI function schema 的 enum 欄位使用。
