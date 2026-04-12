@@ -1,8 +1,10 @@
 <?php
 
+use App\Http\Controllers\Api\Admin\QuickActionController as AdminQuickActionController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ChatController;
 use App\Http\Controllers\Api\ChatHistoryController;
+use App\Http\Controllers\Api\QuickActionController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login'])->name('api.login');
@@ -18,5 +20,12 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::post('/chat', [ChatController::class, 'handle'])->name('api.chat');
         Route::get('/chat/history', [ChatHistoryController::class, 'index'])->name('api.chat.history');
         Route::get('/chat/history/{conversationUuid}', [ChatHistoryController::class, 'show'])->name('api.chat.history.show');
+        Route::get('/quick-actions', [QuickActionController::class, 'index'])->name('api.quick-actions');
+
+        Route::middleware('admin')->prefix('admin')->group(function (): void {
+            Route::get('/quick-actions', [AdminQuickActionController::class, 'index'])->name('api.admin.quick-actions.index');
+            Route::post('/quick-actions', [AdminQuickActionController::class, 'store'])->name('api.admin.quick-actions.store');
+            Route::delete('/quick-actions/{id}', [AdminQuickActionController::class, 'destroy'])->name('api.admin.quick-actions.destroy');
+        });
     });
 });
