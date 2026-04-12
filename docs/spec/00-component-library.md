@@ -46,13 +46,13 @@
 ### 待開發元件
 
 **Chat 擴充（寫入操作）**
-- [ ] `<x-chat.confirm-action>` — 寫入確認卡片（操作摘要 + 確認/取消按鈕）
-- [ ] `<x-chat.upload-preview>` — 檔案上傳預覽（欄位對應表 + 確認/取消）
-- [ ] `<x-chat.file-input>` — 檔案上傳按鈕（📎 圖示）
+- [x] `<x-chat.confirm-action>` — 寫入確認卡片（操作摘要 + 確認/取消按鈕）
+- [x] `<x-chat.upload-preview>` — 檔案上傳預覽（欄位對應表 + 確認/取消）
+- [x] `<x-chat.file-input>` — 檔案上傳按鈕（📎 圖示）
 
 **Dashboard**
-- [ ] `<x-dashboard.panel>` — Dashboard 面板容器（可收合）
-- [ ] `<x-dashboard.stat-card>` — Dashboard 指標卡片（依 schema metadata 動態產生）
+- [x] `<x-dashboard.panel>` — Dashboard 面板容器（可收合）
+- [x] `<x-dashboard.stat-card>` — Dashboard 指標卡片（依 schema metadata 動態產生）
 
 **Form 補充**
 - [x] `<x-form.textarea>` — 多行文字
