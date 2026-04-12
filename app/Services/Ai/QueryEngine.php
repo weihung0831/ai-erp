@@ -338,15 +338,32 @@ final class QueryEngine
             $lines[] = '';
         }
 
-        $lines[] = '請依問題類型呼叫對應的 function：';
-        $lines[] = '- 單一數值結果（營收、數量、平均值等）→ execute_query';
+        $lines[] = '## Function 選擇';
+        $lines[] = '- 單一數值結果（營收、數量、平均值等）→ execute_query。SQL 必須回傳原始數字（不要用 CONCAT 或 FORMAT），後端會自動格式化';
         $lines[] = '- 多筆列表結果（逾期客戶列表、銷售排行、訂單明細等）→ execute_query_table';
         $lines[] = '';
-        $lines[] = '呼叫 execute_query_table 時：';
-        $lines[] = '- headers 必須是中文欄位名稱 list，和 SQL SELECT 子句的欄位順序一一對應';
-        $lines[] = '- reply_template 用 {count} 作為資料筆數的占位符';
-        $lines[] = '- SQL 建議加 LIMIT 100 以內，避免回傳過多資料';
+        $lines[] = '## 信心度評分標準（confidence）';
+        $lines[] = '- 0.97-1.0：問題明確、schema 完全匹配、無歧義（例：指定表的 SUM/COUNT）';
+        $lines[] = '- 0.90-0.96：問題清楚但有輕微假設（例：用了 LIKE 模糊比對、或推測欄位含義）';
+        $lines[] = '- 0.70-0.89：有明顯歧義或多種合理解讀（例：不確定「營收」對應哪個欄位）';
+        $lines[] = '- 0.70 以下：無法確定查詢意圖，應以文字回覆要求釐清';
         $lines[] = '';
+        $lines[] = '## reply_template 規則';
+        $lines[] = '- execute_query：用 {value} 作為占位符。{value} 會被後端自動格式化（加 NT$ 前綴和千分位），模板裡**不要**自行加貨幣符號或單位';
+        $lines[] = '- execute_query_table：用 {count} 作為資料筆數的占位符';
+        $lines[] = '- 涉及時間的查詢，reply_template 說明查詢的時間範圍（例：「本月」「2026年3月」），讓使用者知道資料涵蓋哪段期間';
+        $lines[] = '';
+        $lines[] = '## SQL 日期處理';
+        $lines[] = '- 一律用 CURDATE()、NOW() 等 MySQL 函數計算日期，不要硬編碼日期字串';
+        $lines[] = '- 「本月」= DATE_FORMAT(CURDATE(), \'%Y-%m-01\') 到月底';
+        $lines[] = '- 「上個月」= DATE_FORMAT(CURDATE() - INTERVAL 1 MONTH, \'%Y-%m-01\') 到本月初';
+        $lines[] = '';
+        $lines[] = '## execute_query_table 規則';
+        $lines[] = '- headers 必須是中文欄位名稱 list，和 SQL SELECT 子句的 AS alias 完全一致';
+        $lines[] = '- SQL 建議加 LIMIT 100 以內，避免回傳過多資料';
+        $lines[] = '- SQL 格式化規則：金額欄位用 CONCAT(\'NT$\', FORMAT(col, 0))、日期欄位用 DATE_FORMAT(col, \'%Y-%m-%d\')、enum 狀態欄位用 CASE 翻譯成中文';
+        $lines[] = '';
+        $lines[] = '## 其他';
         $lines[] = '若問題需要寫入資料（新增 / 修改 / 刪除），請以文字回覆說明目前僅支援查詢。';
         $lines[] = '若問題不清楚，請以文字回覆要求使用者釐清。';
 
@@ -394,7 +411,7 @@ final class QueryEngine
                         ],
                         'reply_template' => [
                             'type' => 'string',
-                            'description' => '自然語言回覆模板，使用 {value} 作為查詢結果的占位符',
+                            'description' => '自然語言回覆模板。{value} 會被後端格式化為含 NT$ 和千分位的字串，模板裡不要加貨幣符號。涉及時間範圍時必須包含具體日期',
                         ],
                         'value_format' => [
                             'type' => 'string',
@@ -403,7 +420,7 @@ final class QueryEngine
                         ],
                         'confidence' => [
                             'type' => 'number',
-                            'description' => '0-1 之間的信心度分數',
+                            'description' => '0-1 信心度。0.97+ = 明確無歧義，0.90-0.96 = 輕微假設，0.70-0.89 = 明顯歧義',
                         ],
                     ],
                     'required' => ['sql', 'reply_template', 'value_format', 'confidence'],
@@ -422,15 +439,15 @@ final class QueryEngine
                         'headers' => [
                             'type' => 'array',
                             'items' => ['type' => 'string'],
-                            'description' => '表格欄位的中文名稱 list，順序必須和 SQL SELECT 子句的欄位順序一一對應',
+                            'description' => '表格欄位的中文名稱 list，必須和 SQL SELECT 的 AS alias 完全一致且順序對應',
                         ],
                         'reply_template' => [
                             'type' => 'string',
-                            'description' => '自然語言開場白，使用 {count} 作為查詢結果筆數的占位符',
+                            'description' => '自然語言開場白，{count} 為資料筆數占位符。涉及時間範圍時必須包含具體日期',
                         ],
                         'confidence' => [
                             'type' => 'number',
-                            'description' => '0-1 之間的信心度分數',
+                            'description' => '0-1 信心度。0.97+ = 明確無歧義，0.90-0.96 = 輕微假設，0.70-0.89 = 明顯歧義',
                         ],
                     ],
                     'required' => ['sql', 'headers', 'reply_template', 'confidence'],
