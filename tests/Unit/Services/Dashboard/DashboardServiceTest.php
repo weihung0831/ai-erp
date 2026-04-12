@@ -94,7 +94,7 @@ class DashboardServiceTest extends TestCase
     {
         foreach (['orders', 'accounts_receivable', 'expenses', 'payments', 'customers', 'products', 'inventory', 'purchase_orders'] as $table) {
             $builder = Mockery::mock(Builder::class);
-            $builder->shouldReceive('clone', 'where', 'whereBetween', 'whereColumn', 'selectRaw')->andReturnSelf();
+            $builder->shouldReceive('clone', 'where', 'whereBetween', 'whereNotIn', 'whereColumn', 'selectRaw')->andReturnSelf();
             $builder->shouldReceive('sum', 'value')->andReturn($value);
             $builder->shouldReceive('count')->andReturn((int) $value);
             $this->connection->shouldReceive('table')->with($table)->andReturn($builder);

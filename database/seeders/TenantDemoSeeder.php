@@ -326,12 +326,12 @@ class TenantDemoSeeder extends Seeder
         // 2025-11 到 2026-04 每月 ~100 筆
         for ($monthOffset = self::MONTHS_BACK; $monthOffset >= 0; $monthOffset--) {
             $baseDate = now()->subMonths($monthOffset)->startOfMonth();
-            $daysInMonth = $baseDate->daysInMonth;
+            $maxDay = $monthOffset === 0 ? now()->day - 1 : $baseDate->daysInMonth - 1;
             $ordersThisMonth = $monthOffset === 0 ? rand(40, 60) : rand(90, 110);
 
             for ($j = 0; $j < $ordersThisMonth; $j++) {
                 $orderId++;
-                $orderDate = $baseDate->copy()->addDays(rand(0, $daysInMonth - 1))->toDateString();
+                $orderDate = $baseDate->copy()->addDays(rand(0, max(0, $maxDay)))->toDateString();
                 $customerId = $customerIds[array_rand($customerIds)];
                 $status = $statuses[array_rand($statuses)];
                 $paymentMethod = $status === 'paid' ? $paymentMethods[array_rand($paymentMethods)] : null;
@@ -511,7 +511,8 @@ class TenantDemoSeeder extends Seeder
                 $poCount = rand(2, 4);
                 for ($p = 0; $p < $poCount; $p++) {
                     $poId++;
-                    $orderDate = $baseDate->copy()->addDays(rand(0, 27))->toDateString();
+                    $poMaxDay = $monthOffset === 0 ? now()->day - 1 : 27;
+                    $orderDate = $baseDate->copy()->addDays(rand(0, max(0, $poMaxDay)))->toDateString();
                     $status = $monthOffset === 0 ? $statuses[array_rand($statuses)] : 'received';
                     $delivery = date('Y-m-d', strtotime($orderDate.' +'.rand(3, 10).' days'));
 
@@ -564,13 +565,14 @@ class TenantDemoSeeder extends Seeder
         for ($monthOffset = self::MONTHS_BACK; $monthOffset >= 0; $monthOffset--) {
             $date = now()->subMonths($monthOffset)->startOfMonth();
             $monthStr = $date->format('Y-m');
+            $expMaxDay = $monthOffset === 0 ? now()->day - 1 : 27;
 
             // 租金
             $count++;
             DB::table('expenses')->insert([
                 'category' => 'rent', 'amount' => 180000,
                 'description' => "{$monthStr} 店面租金",
-                'expense_date' => $date->copy()->addDays(4)->toDateString(),
+                'expense_date' => $date->copy()->addDays(min(4, $expMaxDay))->toDateString(),
                 'approved_by' => 4, 'created_at' => now(), 'updated_at' => now(),
             ]);
 
@@ -579,7 +581,7 @@ class TenantDemoSeeder extends Seeder
             DB::table('expenses')->insert([
                 'category' => 'utilities', 'amount' => rand(55000, 75000),
                 'description' => "{$monthStr} 水電瓦斯",
-                'expense_date' => $date->copy()->addDays(14)->toDateString(),
+                'expense_date' => $date->copy()->addDays(min(14, $expMaxDay))->toDateString(),
                 'approved_by' => 4, 'created_at' => now(), 'updated_at' => now(),
             ]);
 
@@ -589,7 +591,7 @@ class TenantDemoSeeder extends Seeder
                 DB::table('expenses')->insert([
                     'category' => 'marketing', 'amount' => rand(30000, 80000),
                     'description' => "{$monthStr} 廣告/促銷活動",
-                    'expense_date' => $date->copy()->addDays(rand(5, 20))->toDateString(),
+                    'expense_date' => $date->copy()->addDays(rand(1, max(1, $expMaxDay)))->toDateString(),
                     'approved_by' => 1, 'created_at' => now(), 'updated_at' => now(),
                 ]);
             }
@@ -599,7 +601,7 @@ class TenantDemoSeeder extends Seeder
             DB::table('expenses')->insert([
                 'category' => 'maintenance', 'amount' => rand(5000, 25000),
                 'description' => "{$monthStr} 設備維護/修繕",
-                'expense_date' => $date->copy()->addDays(rand(1, 25))->toDateString(),
+                'expense_date' => $date->copy()->addDays(rand(1, max(1, $expMaxDay)))->toDateString(),
                 'approved_by' => 3, 'created_at' => now(), 'updated_at' => now(),
             ]);
 
@@ -610,7 +612,7 @@ class TenantDemoSeeder extends Seeder
                 DB::table('expenses')->insert([
                     'category' => 'other', 'amount' => rand(2000, 15000),
                     'description' => $others[array_rand($others)],
-                    'expense_date' => $date->copy()->addDays(rand(1, 27))->toDateString(),
+                    'expense_date' => $date->copy()->addDays(rand(1, max(1, $expMaxDay)))->toDateString(),
                     'approved_by' => rand(1, 5), 'created_at' => now(), 'updated_at' => now(),
                 ]);
             }

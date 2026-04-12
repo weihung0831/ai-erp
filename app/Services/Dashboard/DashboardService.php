@@ -65,7 +65,7 @@ class DashboardService
      */
     private function salesMetrics(Connection $conn, array $periods): array
     {
-        $orders = $conn->table('orders');
+        $orders = $conn->table('orders')->whereNotIn('status', ['cancelled', 'refunded']);
 
         return $this->forEachPeriod($periods, function (string $label, string $curStart, string $prevStart, string $prevEnd) use ($orders) {
             $curRevenue = (float) $orders->clone()->where('order_date', '>=', $curStart)->sum('total_amount');

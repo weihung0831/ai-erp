@@ -476,6 +476,10 @@ final class QueryEngine
         $lines[] = '- SQL 建議加 LIMIT 100 以內，避免回傳過多資料';
         $lines[] = '- SQL 格式化規則：金額欄位用 CONCAT(\'NT$\', FORMAT(col, 0))、日期欄位用 DATE_FORMAT(col, \'%Y-%m-%d\')、enum 狀態欄位用 CASE 翻譯成中文';
         $lines[] = '';
+        $lines[] = '## 營收 / 訂單統計口徑';
+        $lines[] = '- 「營收」「訂單數」等統計一律排除已取消和已退款的訂單：WHERE status NOT IN (\'cancelled\', \'refunded\')';
+        $lines[] = '- pending（待付款）訂單仍算營收（應計基礎）';
+        $lines[] = '';
         $lines[] = '## 其他';
         $lines[] = '若問題需要寫入資料（新增 / 修改 / 刪除），請以文字回覆說明目前僅支援查詢。';
         $lines[] = '若問題不清楚，請以文字回覆要求使用者釐清。';

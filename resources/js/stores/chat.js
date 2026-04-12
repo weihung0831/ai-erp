@@ -104,7 +104,7 @@ export default {
 
     formatValue(value, format) {
         const num = Number(value);
-        if (format === 'currency') return 'NT$' + num.toLocaleString();
+        if (format === 'currency') return 'NT$' + Math.round(num).toLocaleString();
         if (format === 'percent') return (num * 100).toFixed(1) + '%';
         return num.toLocaleString();
     },
