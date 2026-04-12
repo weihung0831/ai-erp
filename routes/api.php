@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\Admin\QueryLogController;
 use App\Http\Controllers\Api\Admin\QuickActionController as AdminQuickActionController;
 use App\Http\Controllers\Api\Admin\SchemaFieldController;
 use App\Http\Controllers\Api\AuthController;
@@ -30,6 +31,9 @@ Route::middleware('auth:sanctum')->group(function (): void {
 
             Route::get('/schema-fields', [SchemaFieldController::class, 'index'])->name('api.admin.schema-fields.index');
             Route::patch('/schema-fields/{table}/{column}', [SchemaFieldController::class, 'update'])->name('api.admin.schema-fields.update');
+
+            Route::get('/query-logs', [QueryLogController::class, 'index'])->name('api.admin.query-logs.index');
+            Route::patch('/query-logs/{id}', [QueryLogController::class, 'update'])->name('api.admin.query-logs.update');
         });
     });
 });
