@@ -620,11 +620,11 @@ class TenantDemoSeeder extends Seeder
     private function seedSchemaMetadata(): void
     {
         $tables = [
-            // Column format: [name, type, display_name, description, restricted?, is_kpi?, aggregation?, value_format?]
+            // Column format: [name, type, display_name, description, restricted?, is_kpi?, aggregation?, value_format?, kpi_label?]
             'orders' => ['訂單', [
-                ['id', 'int', '訂單編號', null, false, true, 'count', 'count'],
+                ['id', 'int', '訂單編號', null, false, true, 'count', 'count', '訂單數'],
                 ['customer_id', 'int', '客戶編號', null],
-                ['total_amount', 'decimal', '訂單金額', '含稅總價（新台幣）', false, true, 'sum', 'currency'],
+                ['total_amount', 'decimal', '訂單金額', '含稅總價（新台幣）', false, true, 'sum', 'currency', '總營收'],
                 ['tax_amount', 'decimal', '稅額', '營業稅 5%'],
                 ['discount_amount', 'decimal', '折扣金額', null],
                 ['status', 'varchar', '訂單狀態', 'pending/paid/cancelled/refunded'],
@@ -641,7 +641,7 @@ class TenantDemoSeeder extends Seeder
                 ['subtotal', 'decimal', '小計', null],
             ]],
             'customers' => ['客戶', [
-                ['id', 'int', '客戶編號', null, false, true, 'count', 'count'],
+                ['id', 'int', '客戶編號', null, false, true, 'count', 'count', '客戶數'],
                 ['name', 'varchar', '客戶名稱', null],
                 ['contact_person', 'varchar', '聯絡人', null],
                 ['phone', 'varchar', '電話', null],
@@ -652,7 +652,7 @@ class TenantDemoSeeder extends Seeder
                 ['created_at', 'datetime', '建立時間', null],
             ]],
             'products' => ['產品', [
-                ['id', 'int', '產品編號', null, false, true, 'count', 'count'],
+                ['id', 'int', '產品編號', null, false, true, 'count', 'count', '產品數'],
                 ['name', 'varchar', '產品名稱', null],
                 ['category_id', 'int', '分類編號', null],
                 ['unit_price', 'decimal', '單價', null],
@@ -696,7 +696,7 @@ class TenantDemoSeeder extends Seeder
                 ['id', 'int', '應收編號', null],
                 ['customer_id', 'int', '客戶編號', null],
                 ['invoice_id', 'int', '發票編號', null],
-                ['amount', 'decimal', '應收金額', null, false, true, 'sum', 'currency'],
+                ['amount', 'decimal', '應收金額', null, false, true, 'sum', 'currency', '應收帳款總額'],
                 ['paid_amount', 'decimal', '已收金額', null],
                 ['due_date', 'date', '到期日', null],
                 ['status', 'varchar', '狀態', 'pending/partial/paid/overdue'],
@@ -741,7 +741,7 @@ class TenantDemoSeeder extends Seeder
             'expenses' => ['費用', [
                 ['id', 'int', '費用編號', null],
                 ['category', 'varchar', '費用類別', 'rent/utilities/marketing/maintenance/other'],
-                ['amount', 'decimal', '金額', null, false, true, 'sum', 'currency'],
+                ['amount', 'decimal', '金額', null, false, true, 'sum', 'currency', '總費用'],
                 ['description', 'text', '說明', null],
                 ['expense_date', 'date', '費用日期', null],
                 ['approved_by', 'int', '核准人員工編號', null],
@@ -761,6 +761,7 @@ class TenantDemoSeeder extends Seeder
                 'description' => null,
                 'is_restricted' => false,
                 'is_kpi' => false,
+                'kpi_label' => null,
                 'aggregation' => null,
                 'value_format' => null,
                 'created_at' => $now,
@@ -779,6 +780,7 @@ class TenantDemoSeeder extends Seeder
                     'is_kpi' => $col[5] ?? false,
                     'aggregation' => $col[6] ?? null,
                     'value_format' => $col[7] ?? null,
+                    'kpi_label' => $col[8] ?? null,
                     'created_at' => $now,
                     'updated_at' => $now,
                 ]);

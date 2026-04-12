@@ -1,6 +1,6 @@
 # Blade 元件庫規格
 
-日期：2026-04-12（更新）
+日期：2026-04-13（更新）
 狀態：已核准
 依據：[UI 設計規範](../design/ui-design-spec.md) / [設計模式](../design/design-pattern.md)
 
@@ -10,62 +10,78 @@
 
 ## 進度追蹤
 
-### 核心元件（已實作）
+### 核心元件（已實作，頁面中使用）
+
+**Layouts**
+- [x] `<x-layouts.app>` — HTML 框架（`<html>`、字型、Vite assets），所有頁面的最外層
 
 **Layout**
-- [x] `<x-layout.page>` — 頁面框架
-- [x] `<x-layout.sidebar>` — 側邊導覽列
+- [x] `<x-layout.page>` — 頁面框架（sidebar + header + content）
+- [x] `<x-layout.sidebar>` — 側邊導覽列（reusable component，目前頁面使用 inline sidebar）
 - [x] `<x-layout.header>` — 頂部導覽列
 
-**Chat**
+**Chat**（檔案存在，但聊天頁使用 Alpine.js inline 渲染，未以 Blade component 引用）
 - [x] `<x-chat.bubble>` — 聊天氣泡
 - [x] `<x-chat.input>` — 聊天輸入框
-- [x] `<x-chat.quick-actions>` — 快捷按鈕列
 - [x] `<x-chat.confidence>` — 信心度標籤
 - [x] `<x-chat.typing>` — AI 打字中動畫
-- [x] `<x-chat.result-table>` — 查詢結果表格（聊天內嵌）
-- [x] `<x-chat.result-number>` — 查詢結果數字（聊天內嵌）
+- [x] `<x-chat.result-table>` — 查詢結果表格
+- [x] `<x-chat.result-number>` — 查詢結果數字
 
 **Data**
 - [x] `<x-data.table>` — 通用資料表格
 - [x] `<x-data.pagination>` — 分頁元件
 - [x] `<x-data.empty-state>` — 空資料提示
+- [x] `<x-data.stat-card>` — 數據統計卡片
 
 **Form**
-- [x] `<x-form.input>` — 文字輸入框
-
-**UI**
-- [x] `<x-ui.button>` — 按鈕
-- [x] `<x-ui.alert>` — 提示訊息
-- [x] `<x-ui.modal>` — Modal 對話框（用於閒置警告）
-- [x] `<x-ui.dropdown>` — 下拉選單（用於 header 使用者選單）
-- [x] `<x-ui.loading>` — 載入動畫（skeleton）
-- [x] `<x-ui.toast>` — 即時通知（操作回饋）
-- [x] `<x-ui.tooltip>` — hover 提示
-
-### 待開發元件
-
-**Chat 擴充（寫入操作）**
-- [x] `<x-chat.confirm-action>` — 寫入確認卡片（操作摘要 + 確認/取消按鈕）
-- [x] `<x-chat.upload-preview>` — 檔案上傳預覽（欄位對應表 + 確認/取消）
-- [x] `<x-chat.file-input>` — 檔案上傳按鈕（📎 圖示）
-
-**Dashboard**
-- [x] `<x-dashboard.panel>` — Dashboard 面板容器（可收合）
-- [x] `<x-dashboard.stat-card>` — Dashboard 指標卡片（依 schema metadata 動態產生）
-
-**Form 補充**
+- [x] `<x-form.input>` — 文字輸入框（登入 / 忘記密碼 / 重設密碼頁使用）
 - [x] `<x-form.textarea>` — 多行文字
 - [x] `<x-form.select>` — 下拉選單
 - [x] `<x-form.toggle>` — 開關
 - [x] `<x-form.date-picker>` — 日期選擇器
 - [x] `<x-form.checkbox>` — 勾選框
 
-**UI 補充**
+**UI**
+- [x] `<x-ui.button>` — 按鈕（登入 / 重設密碼頁使用）
+- [x] `<x-ui.alert>` — 提示訊息（登入 / 忘記密碼 / 重設密碼頁使用）
+- [x] `<x-ui.modal>` — Modal 對話框（登出確認用）
+- [x] `<x-ui.splash>` — 全畫面載入動畫（登入 / 登出過場）
+- [x] `<x-ui.dropdown>` — 下拉選單
+- [x] `<x-ui.loading>` — 載入動畫（skeleton）
 - [x] `<x-ui.badge>` — 標籤
+- [x] `<x-ui.toast>` — 即時通知
+- [x] `<x-ui.tooltip>` — hover 提示
 
-**Data 補充**
-- [x] `<x-data.stat-card>` — 數據統計卡片
+**Dashboard**
+- [x] `<x-dashboard.panel>` — Dashboard 面板容器（可收合，Dashboard 頁使用但指標卡片以 Alpine.js inline 渲染）
+- [x] `<x-dashboard.stat-card>` — Dashboard 指標卡片（檔案存在，目前以 inline `.dashboard-stat-card` 渲染）
+
+### 待開發元件
+
+**Chat 擴充（寫入操作）**（檔案已建立，尚未整合到聊天頁）
+- [x] `<x-chat.confirm-action>` — 寫入確認卡片（操作摘要 + 確認/取消按鈕）
+- [x] `<x-chat.upload-preview>` — 檔案上傳預覽（欄位對應表 + 確認/取消）
+- [x] `<x-chat.file-input>` — 檔案上傳按鈕（📎 圖示）
+
+### 聊天頁的 inline 渲染說明
+
+聊天頁因為需要 Alpine.js 動態渲染（`x-for` 迴圈 + `x-if` 條件），大部分 UI 直接在 `pages/chat/index.blade.php` 中用 CSS class 渲染，未以 Blade component 引用：
+
+| 功能 | CSS class | 說明 |
+|------|-----------|------|
+| 使用者氣泡 | `.bubble.bubble-user` | 品牌綠底黑字，右下小圓角 |
+| AI 氣泡 | `.bubble.bubble-ai` | 深色卡片 + 邊框，markdown 渲染（`.prose-ai`） |
+| 信心度 | `.confidence.confidence-high/mid/low` | pill 標籤 |
+| 數字結果 | `.result-number > .stat-value` | 綠色 36px 大字 + 深色背景 |
+| 表格結果 | `.data-table` | 品牌綠 header |
+| SQL 展開 | `.bubble-sql > details` | 中信心時顯示 |
+| typing 動畫 | `.typing-dots` | 三個跳動的點 |
+| 空狀態歡迎 | `.chat-welcome` | Claude 風格居中（品牌圖示 + 標題 + 輸入框 + pill 建議） |
+| 底部輸入框 | `.chat-bottom-form` | 圓角 16px + 內嵌綠色送出按鈕 |
+| 快捷建議 | `.chat-hint-chip` | pill 按鈕，點擊直接送出 |
+
+Dashboard 頁同理，指標卡片以 `.dashboard-stat-card.is-currency/.is-count` + Alpine.js `x-for` 渲染。
 
 ### 初始版本不包含的元件（已實作但暫不使用）
 
@@ -89,6 +105,24 @@
 - [x] `<x-admin.tenant-card>` / `<x-admin.trend-chart>`
 
 ## 元件介面定義
+
+### Layouts
+
+#### `<x-layouts.app>`
+
+HTML 框架，所有頁面的最外層。載入字型（Noto Sans TC、JetBrains Mono）和 Vite assets。
+
+| Prop | 型別 | 必填 | 預設 | 說明 |
+|------|------|------|------|------|
+| title | string | 否 | `AI ERP 平台` | `<title>` 標題 |
+
+```blade
+<x-layouts.app title="Dashboard">
+    {{-- 頁面內容 --}}
+</x-layouts.app>
+```
+
+> **注意命名**：`layouts/app.blade.php`（複數）vs `layout/{sidebar,header,page}.blade.php`（單數）。用法 `<x-layouts.app>` vs `<x-layout.sidebar>`。
 
 ### Layout
 
@@ -152,16 +186,6 @@
 | disabled | bool | 否 | false | 是否停用 |
 
 Alpine.js 事件：`@submit` 觸發 `$store.chat.send()`
-
-#### `<x-chat.quick-actions>`
-
-快捷按鈕列。
-
-| Prop | 型別 | 必填 | 預設 | 說明 |
-|------|------|------|------|------|
-| actions | array | 是 | — | `['本月營收', '庫存狀況', '應收帳款']` |
-
-點擊後將文字填入輸入框並自動送出。
 
 #### `<x-chat.confidence>`
 
@@ -342,6 +366,43 @@ hover 提示文字。
 |------|------|------|------|------|
 | text | string | 是 | — | 提示文字 |
 | position | string | 否 | `top` | `top` / `bottom` / `left` / `right` |
+
+#### `<x-ui.splash>`
+
+全畫面載入動畫（登入中、登出中的過場），使用 `x-teleport="body"` 置頂。包含粒子動畫、掃描線、脈衝環、進度條。
+
+| Prop | 型別 | 必填 | 預設 | 說明 |
+|------|------|------|------|------|
+| show | string | 是 | — | Alpine.js 變數名稱（控制顯示） |
+| subtitle | string | 否 | `載入中` | 副標文字（「系統載入中」/「正在登出」） |
+
+```blade
+<x-ui.splash show="loading" subtitle="系統載入中" />
+```
+
+### Dashboard
+
+#### `<x-dashboard.panel>`
+
+Dashboard 面板容器，可收合。收合狀態存 localStorage。
+
+| Prop | 型別 | 必填 | 預設 | 說明 |
+|------|------|------|------|------|
+| title | string | 否 | `Dashboard` | 面板標題 |
+| storageKey | string | 否 | `dashboard_collapsed` | localStorage key |
+
+使用 Alpine.js `x-collapse` + `x-cloak` 控制展開/收合動畫。
+
+#### `<x-dashboard.stat-card>`
+
+Dashboard 指標卡片（Blade component 版本，目前 Dashboard 頁以 inline CSS class 渲染）。
+
+| Prop | 型別 | 必填 | 預設 | 說明 |
+|------|------|------|------|------|
+| label | string | 是 | — | 標籤 |
+| value | string | 是 | — | 顯示值（已格式化） |
+| trend | float | 否 | null | 趨勢百分比（正/負） |
+| icon | string | 否 | null | 圖示 HTML |
 
 ### Build 元件（初始版本不包含）
 

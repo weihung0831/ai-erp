@@ -18,7 +18,9 @@ return new class extends Migration
         Schema::table('schema_metadata', function (Blueprint $table) {
             $table->boolean('is_kpi')->default(false)->after('is_restricted')
                 ->comment('Dashboard KPI 標記，true 時出現在 Dashboard');
-            $table->string('aggregation')->nullable()->after('is_kpi')
+            $table->string('kpi_label')->nullable()->after('is_kpi')
+                ->comment('Dashboard 顯示標籤，如「總營收」「訂單數」');
+            $table->string('aggregation')->nullable()->after('kpi_label')
                 ->comment('KPI 彙總方式：sum/count/avg/max/min');
             $table->string('value_format')->nullable()->after('aggregation')
                 ->comment('顯示格式：currency/count，對應 ValueFormat enum');
@@ -28,7 +30,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('schema_metadata', function (Blueprint $table) {
-            $table->dropColumn(['is_kpi', 'aggregation', 'value_format']);
+            $table->dropColumn(['is_kpi', 'kpi_label', 'aggregation', 'value_format']);
         });
     }
 };

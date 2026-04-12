@@ -4,7 +4,7 @@ export default {
     input: '',
     loading: false,
     conversationId: null,
-    async init() {
+    async loadIfNeeded() {
         if (!localStorage.getItem('token')) return;
         await this.fetchConversations();
     },
@@ -14,7 +14,7 @@ export default {
         if (!text || this.loading) return;
         this.input = '';
 
-        this.messages.push({ role: 'user', content: text });
+        this.messages.push({ role: 'user', content: text, time: new Date() });
         this.loading = true;
         this._scrollToBottom();
 
@@ -33,6 +33,7 @@ export default {
                 data: d.data,
                 confidence: d.confidence,
                 sql: d.sql,
+                time: new Date(),
             });
 
             // Fire-and-forget: refresh sidebar without blocking UX
@@ -64,7 +65,7 @@ export default {
         try {
             const res = await window.axios.get(`/api/chat/history/${id}`);
             for (const turn of res.data.data || []) {
-                this.messages.push({ role: 'user', content: turn.message });
+                this.messages.push({ role: 'user', content: turn.message, time: new Date(turn.created_at) });
                 this.messages.push({
                     role: 'ai',
                     content: turn.response,
@@ -72,6 +73,7 @@ export default {
                     data: turn.response_data,
                     confidence: turn.confidence,
                     sql: null,
+                    time: new Date(turn.created_at),
                 });
             }
         } catch {
@@ -118,7 +120,7 @@ export default {
     },
 
     _errorMessage(content) {
-        return { role: 'ai', type: 'error', content, data: null, confidence: null, sql: null };
+        return { role: 'ai', type: 'error', content, data: null, confidence: null, sql: null, time: new Date() };
     },
 
     _scrollToBottom() {

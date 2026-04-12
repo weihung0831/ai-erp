@@ -10,15 +10,13 @@ use Illuminate\Http\Request;
 /**
  * Dashboard 指標 API（US-13）。
  *
- * GET /api/dashboard — 取得 Dashboard 指標清單（依 schema metadata 動態產生）
+ * GET /api/dashboard — 取得 Dashboard 指標清單
  */
 class DashboardController extends Controller
 {
     public function index(Request $request, DashboardService $dashboardService): JsonResponse
     {
-        $tenantId = $request->user()->tenant_id;
-
-        $metrics = $dashboardService->getMetrics($tenantId);
+        $metrics = $dashboardService->getMetrics($request->user()->tenant_id);
 
         return response()->json([
             'data' => array_map(fn ($metric) => $metric->toArray(), $metrics),

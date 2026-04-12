@@ -163,44 +163,94 @@
 
 ### US-13：Dashboard 指標 API
 
-> 身為 ERP 使用者，我想在聊天頁面看到業務關鍵指標的即時概覽（營收、訂單數等）。
+> 身為 ERP 使用者，我想在獨立 Dashboard 頁面看到業務關鍵指標的即時概覽（營收、訂單數等），並能按月/季/年切換時間維度。
 
 **驗收條件：**
-- API 回傳依 schema metadata 動態產生的指標清單
-- 指標來源：`schema_metadata` 表中標記 `is_kpi: true` 的欄位 + 金額/數量型欄位自動彙總
-- Dashboard 指標使用預定義 SQL（非即時 LLM 生成），確保穩定性和速度
+- `GET /api/dashboard` 回傳三個 section（sales / finance / operations）的預定義指標
+- 每個指標包含本月/本季/年度三個時間維度，各自附上 vs 上期趨勢百分比
+- Dashboard 指標使用 Laravel Query Builder 預定義查詢（非即時 LLM 生成），確保穩定性和速度
 - 回應延遲 < 1 秒
+
+**實作摘要：**
+
+| 檔案 | 說明 |
+|------|------|
+| `DashboardController` | Thin controller，從 `$request->user()->tenant_id` 取得租戶 ID |
+| `DashboardService` | 預定義查詢，分 `salesMetrics` / `financeMetrics` / `operationMetrics` 三組 |
+| `DashboardMetric` DTO | `label`、`section`、`valueFormat`、`value`、`formattedValue`、`trend` |
+| `ValueFormat::format()` | 統一格式化（Currency → `NT$1,234,567`、Count → `1,234`） |
+| `AggregationType` enum | sum / count / avg / max / min（用於 schema_metadata KPI 標記） |
+
+**指標清單：**
+
+| Section | 指標 | 查詢邏輯 | 趨勢比較 |
+|---------|------|----------|----------|
+| sales | {期間}營收 | `SUM(orders.total_amount)` WHERE `order_date` in 期間 | vs 上期 |
+| sales | {期間}訂單數 | `COUNT(orders.*)` WHERE `order_date` in 期間 | vs 上期 |
+| sales | {期間}平均訂單金額 | 營收 ÷ 訂單數 | vs 上期 |
+| finance | {期間}應收帳款 | `SUM(accounts_receivable.amount)` WHERE `created_at` in 期間 | vs 上期 |
+| finance | {期間}逾期應收 | `SUM(amount - paid_amount)` WHERE `status='overdue'` AND `due_date` in 期間 | vs 上期 |
+| finance | {期間}費用 | `SUM(expenses.amount)` WHERE `expense_date` in 期間 | vs 上期 |
+| finance | {期間}收款 | `SUM(payments.amount)` WHERE `payment_date` in 期間 | vs 上期 |
+| operations | {期間}新增客戶 | `COUNT(customers.*)` WHERE `created_at` in 期間 | vs 上期 |
+| operations | {期間}新增產品 | `COUNT(products.*)` WHERE `is_active=1` AND `created_at` in 期間 | vs 上期 |
+| operations | {期間}採購單 | `COUNT(purchase_orders.*)` WHERE `order_date` in 期間 | vs 上期 |
+| operations | {期間}庫存不足 | `COUNT(inventory.*)` WHERE `quantity < min_quantity`（即時快照） | 持平 |
+
+**趨勢計算：** `(current - previous) / |previous|`；previous = 0 且 current > 0 時為 `1.0`；兩者皆 0 時為 `0.0`
+
+**API 回應格式：**
+```json
+{
+  "data": [
+    {
+      "label": "本月營收",
+      "section": "sales",
+      "value_format": "currency",
+      "value": 231891,
+      "formatted_value": "NT$231,891",
+      "trend": -0.529
+    }
+  ]
+}
+```
 
 ## 聊天介面規格
 
 ### 佈局
 
+Dashboard 為獨立頁面（`/dashboard`），聊天為獨立頁面（`/chat`），透過側邊欄導覽切換。
+
+**聊天頁（空狀態）：**
 ```
-┌──────────────────────────────────┐
-│  Logo / 公司名稱        使用者頭像  │
-├──────────────────────────────────┤
-│  [Dashboard 指標卡片列]            │
-├──────────────────────────────────┤
-│                                  │
-│  [AI] 您好！我可以幫您查詢和管理      │
-│       業務資料。試試看：             │
-│       • 這個月營收多少？            │
-│       • 新增一筆訂單               │
-│                                  │
-│  [User] 幫我新增一筆訂單，          │
-│         客戶 ABC，金額 12,500      │
-│                                  │
-│  [AI] 即將新增以下訂單：            │
-│       客戶：ABC                   │
-│       金額：NT$12,500             │
-│       日期：2026/04/12            │
-│       ┌──────┐ ┌──────┐          │
-│       │ 確認  │ │ 取消  │          │
-│       └──────┘ └──────┘          │
-│                                  │
-├──────────────────────────────────┤
-│  [輸入框: 請輸入您的問題...]  📎 [送出] │
-└──────────────────────────────────┘
+┌─────────┬────────────────────────┐
+│ AI ERP  │                        │
+│ ─────── │     💬 品牌圖示         │
+│ Dashboard│                       │
+│ 聊天 ●  │  有什麼我能幫你的？      │
+│ ─────── │                        │
+│ + 新對話 │  [────輸入框────── ➤]   │
+│         │                        │
+│         │  [本月營收] [客戶消費]    │
+│         │  [庫存不足]             │
+│ Admin ▾ │                        │
+└─────────┴────────────────────────┘
+```
+
+**聊天頁（對話中）：**
+```
+┌─────────┬────────────────────────┐
+│ AI ERP  │                        │
+│ ─────── │  [User] 幫我新增訂單    │
+│ Dashboard│                       │
+│ 聊天 ●  │  [AI] 即將新增以下訂單： │
+│ ─────── │       客戶：ABC        │
+│ + 新對話 │       金額：NT$12,500  │
+│ 歷史對話 │       [確認] [取消]     │
+│ ...     │                        │
+│         ├────────────────────────┤
+│ Admin ▾ │  [────輸入框────── ➤]   │
+└─────────┴────────────────────────┘
 ```
 
 ### 回應類型
@@ -452,7 +502,7 @@
 
 | Method | Path | 說明 |
 |--------|------|------|
-| `GET` | `/api/dashboard` | 取得 Dashboard 指標清單（依 schema metadata 動態產生） |
+| `GET` | `/api/dashboard` | 取得 Dashboard 指標清單（預定義查詢，含 section 分組、月/季/年趨勢） |
 
 ### 管理
 

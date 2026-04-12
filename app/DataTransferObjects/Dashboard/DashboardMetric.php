@@ -2,7 +2,6 @@
 
 namespace App\DataTransferObjects\Dashboard;
 
-use App\Enums\AggregationType;
 use App\Enums\ValueFormat;
 
 /**
@@ -15,27 +14,22 @@ final readonly class DashboardMetric
 {
     public function __construct(
         public string $label,
-        public string $tableName,
-        public string $columnName,
-        public AggregationType $aggregation,
+        public string $section,
         public ValueFormat $valueFormat,
         public int|float $value,
         public string $formattedValue,
+        public ?float $trend = null,
     ) {}
 
-    /**
-     * @return array{label: string, table_name: string, column_name: string, aggregation: string, value_format: string, value: int|float, formatted_value: string}
-     */
     public function toArray(): array
     {
         return [
             'label' => $this->label,
-            'table_name' => $this->tableName,
-            'column_name' => $this->columnName,
-            'aggregation' => $this->aggregation->value,
+            'section' => $this->section,
             'value_format' => $this->valueFormat->value,
             'value' => $this->value,
             'formatted_value' => $this->formattedValue,
+            'trend' => $this->trend,
         ];
     }
 }

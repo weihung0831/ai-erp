@@ -6,17 +6,21 @@
 
 ## 專案狀態
 
-**查詢功能後端完成、前端整合中、寫入功能待開發。** Laravel 13 + Sanctum 已 scaffold、48 個 Blade Component 已全數實作、Chat-to-query（唯讀查詢）後端 17 支 API 全部到位（含 SSE 串流）、Golden Test 150 筆 100% pass。
+**查詢 + Dashboard 已完成，寫入功能待開發。** Laravel 13 + Sanctum 已 scaffold、48 個 Blade Component、18 支 API（含 SSE 串流 + Dashboard）、Golden Test 150 筆 100% pass、Dashboard 獨立頁面（月/季/年指標 + 趨勢比較）、聊天頁 Claude 風格空狀態 + markdown 渲染。
 
 已建立：
-- `Controllers/Api/` — Auth、Chat、StreamChat（SSE）、ChatHistory
-- `Services/` — QueryEngine、OpenAiGateway、SqlValidator、ConfidenceEstimator、TenantManager、TenantDatabaseManager
+- `Controllers/Api/` — Auth、Chat、StreamChat（SSE）、ChatHistory、Dashboard
+- `Controllers/Web/` — AuthPage、ChatPage、DashboardPage
+- `Services/` — QueryEngine、OpenAiGateway、SqlValidator、ConfidenceEstimator、TenantManager、DashboardService
 - `Models/` — ChatHistory、Conversation、SchemaFieldRestriction、Tenant、User
 - `Repositories/` — Contract + Eloquent 實作（Repository Pattern）
-- DB-per-tenant 含 15 個 tenant migrations + demo seeder
+- `Enums/` — ChatResponseType、ConfidenceLevel、UserRole、ValueFormat、AggregationType
+- DB-per-tenant 含 16 個 tenant migrations + demo seeder
+- Dashboard：預定義查詢（銷售/財務/營運），月/季/年時間維度 + 趨勢 %
+- 聊天頁：Claude 風格居中歡迎、markdown 渲染（marked.js）、inline Alpine.js UI
 - Golden accuracy test suite（150 筆，100% pass）
 
-下一步：擴展為 Chat-to-operate（加入 INSERT/UPDATE/DELETE + 確認流程 + 檔案上傳 + Dashboard）。
+下一步：Chat-to-operate（INSERT/UPDATE/DELETE + 確認流程 + 檔案上傳）。
 
 ## 這是什麼？
 
@@ -49,7 +53,10 @@
 
 - **API-first** — `Controllers/Api/` 回傳 JSON；`Controllers/Web/` 回傳 Blade view，透過 Axios 呼叫 `/api/*`
 - **DB-per-tenant** — 每個客戶獨立 MySQL DB
-- **Blade 元件化** — 所有 UI 用巢狀命名空間元件（`<x-chat.bubble>`、`<x-data.table>` 等）
+- **頁面路由** — `/` → `/dashboard`（首頁）、`/chat`（聊天）、`/login`、`/forgot-password`、`/reset-password/{token}`
+- **Dashboard** — 獨立頁面，使用 Laravel Query Builder 預定義查詢（非 LLM 生成），期間選擇器（月/季/年），趨勢比較 vs 上期
+- **聊天頁** — 雙狀態：Claude 風格居中歡迎（空狀態）→ 對話模式（有訊息）；AI 回覆用 markdown 渲染（marked.js）
+- **Blade + inline 渲染** — 48 個 Blade Component 存在，但聊天和 Dashboard 頁面因 Alpine.js 動態需求，以 inline CSS class 渲染
 - **信心度分層（查詢）** — 高（> 95%）直接回答、中（70-95%）附提示、低（< 70%）不回答改引導釐清
 - **寫入一律確認** — 所有 INSERT/UPDATE/DELETE 顯示操作摘要，使用者確認後才執行
 
@@ -61,7 +68,7 @@
 - [UI 設計規範](docs/design/ui-design-spec.md) — 元件視覺規範（Spotify 深色唯一模式）、動畫
 - [元件庫](docs/spec/00-component-library.md) — Blade Component 定義
 - [後端規格](docs/spec/01-phase1-backend.md) — Chat-to-Operate API（查詢 + 寫入 + 上傳 + Dashboard）
-- [前端規格](docs/spec/02-phase1-frontend.md) — 聊天介面頁面
+- [前端規格](docs/spec/02-phase1-frontend.md) — Dashboard 獨立頁面 + 聊天頁（Claude 風格 + markdown）+ 寫入確認 + 檔案上傳
 
 ## 快速開始
 
@@ -85,7 +92,8 @@ npm install
 cp .env.example .env
 php artisan key:generate
 php artisan migrate
-php artisan db:seed --class=DemoSeeder   # 帳號密碼：admin@example.com / admin@example.com
+php artisan db:seed --class=DemoSeeder                # 帳號密碼：admin@example.com / admin@example.com
+php artisan tenant:provision 1 --fresh --seed          # 佈建租戶 DB + demo 資料
 npm run build
 ```
 
@@ -110,6 +118,7 @@ npm run dev                      # Vite watch mode
 php artisan view:clear           # 清 Blade 編譯快取
 php artisan golden:run           # LLM 準確度測試（150 筆，打真實 API）
 php artisan golden:run --limit=10  # 快速煙霧測試
+php artisan tenant:provision 1 --fresh --seed  # 重新佈建租戶 DB
 ```
 
 ### 開始寫程式前先讀

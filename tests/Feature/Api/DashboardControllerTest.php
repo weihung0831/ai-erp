@@ -3,7 +3,6 @@
 namespace Tests\Feature\Api;
 
 use App\DataTransferObjects\Dashboard\DashboardMetric;
-use App\Enums\AggregationType;
 use App\Enums\ValueFormat;
 use App\Models\Tenant;
 use App\Models\User;
@@ -40,22 +39,20 @@ class DashboardControllerTest extends TestCase
             ->once()
             ->andReturn([
                 new DashboardMetric(
-                    label: '訂單金額',
-                    tableName: 'orders',
-                    columnName: 'total_amount',
-                    aggregation: AggregationType::Sum,
+                    label: '本月營收',
+                    section: 'sales',
                     valueFormat: ValueFormat::Currency,
                     value: 1234567,
                     formattedValue: 'NT$1,234,567',
+                    trend: 0.15,
                 ),
                 new DashboardMetric(
-                    label: '訂單編號',
-                    tableName: 'orders',
-                    columnName: 'id',
-                    aggregation: AggregationType::Count,
+                    label: '本月訂單數',
+                    section: 'sales',
                     valueFormat: ValueFormat::Count,
                     value: 342,
                     formattedValue: '342',
+                    trend: -0.05,
                 ),
             ]);
 
@@ -66,23 +63,21 @@ class DashboardControllerTest extends TestCase
             ->assertJsonStructure([
                 'data' => [[
                     'label',
-                    'table_name',
-                    'column_name',
-                    'aggregation',
+                    'section',
                     'value_format',
                     'value',
                     'formatted_value',
+                    'trend',
                 ]],
             ])
-            ->assertJsonPath('data.0.label', '訂單金額')
-            ->assertJsonPath('data.0.value', 1234567)
-            ->assertJsonPath('data.0.formatted_value', 'NT$1,234,567')
-            ->assertJsonPath('data.1.label', '訂單編號')
-            ->assertJsonPath('data.1.value', 342)
-            ->assertJsonPath('data.1.aggregation', 'count');
+            ->assertJsonPath('data.0.label', '本月營收')
+            ->assertJsonPath('data.0.section', 'sales')
+            ->assertJsonPath('data.0.trend', 0.15)
+            ->assertJsonPath('data.1.label', '本月訂單數')
+            ->assertJsonPath('data.1.trend', -0.05);
     }
 
-    public function test_dashboard_returns_empty_when_no_kpi_configured(): void
+    public function test_dashboard_returns_empty_when_no_data(): void
     {
         $this->mock(DashboardService::class)
             ->shouldReceive('getMetrics')

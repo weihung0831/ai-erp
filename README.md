@@ -6,17 +6,21 @@ AI-powered ERP platform that replaces traditional ERP interfaces (forms, menus, 
 
 ## Status
 
-**Query backend complete; frontend integration in progress; write operations next.** Laravel 13 + Sanctum scaffolded, 48 Blade components implemented, Chat-to-query (read-only) backend with 17 APIs working end-to-end (including SSE streaming), Golden Test Suite at 150 cases with 100% pass rate.
+**Query + Dashboard complete; write operations next.** Laravel 13 + Sanctum scaffolded, 48 Blade components, 18 APIs (SSE streaming + Dashboard), Golden Test Suite 150 cases at 100% pass rate, Dashboard page with month/quarter/year metrics and trend comparison, chat page with Claude-style empty state and markdown rendering.
 
 What's built:
-- `Controllers/Api/` — Auth, Chat, StreamChat (SSE), ChatHistory
-- `Services/` — QueryEngine, OpenAiGateway, SqlValidator, ConfidenceEstimator, TenantManager, TenantDatabaseManager
+- `Controllers/Api/` — Auth, Chat, StreamChat (SSE), ChatHistory, Dashboard
+- `Controllers/Web/` — AuthPage, ChatPage, DashboardPage
+- `Services/` — QueryEngine, OpenAiGateway, SqlValidator, ConfidenceEstimator, TenantManager, DashboardService
 - `Models/` — ChatHistory, Conversation, SchemaFieldRestriction, Tenant, User
 - `Repositories/` — Contract + Eloquent implementation (Repository Pattern)
-- DB-per-tenant with 15 tenant migrations + demo seeder
+- `Enums/` — ChatResponseType, ConfidenceLevel, UserRole, ValueFormat, AggregationType
+- DB-per-tenant with 16 tenant migrations + demo seeder
+- Dashboard: predefined queries (sales/finance/operations), month/quarter/year periods, trend %
+- Chat: Claude-style centered welcome, markdown rendering (marked.js), inline Alpine.js UI
 - Golden accuracy test suite (150 cases, 100% pass)
 
-Next: Expand to Chat-to-operate (add INSERT/UPDATE/DELETE + confirmation flow + file upload + Dashboard).
+Next: Chat-to-operate (INSERT/UPDATE/DELETE + confirmation flow + file upload).
 
 ## What is this?
 
@@ -49,7 +53,10 @@ All write operations require user confirmation before execution. No silent write
 
 - **API-first** — `Controllers/Api/` returns JSON; `Controllers/Web/` returns Blade views that make Axios calls to `/api/*`
 - **DB-per-tenant** — Each customer gets an isolated MySQL database
-- **Blade components** — All UI built with namespaced components (`<x-chat.bubble>`, `<x-data.table>`, etc.)
+- **Routing** — `/` → `/dashboard` (home), `/chat` (AI chat), `/login`, `/forgot-password`, `/reset-password/{token}`
+- **Dashboard** — Standalone page with predefined Query Builder queries (not LLM-generated), period selector (month/quarter/year), trend comparison vs previous period
+- **Chat** — Dual-state: Claude-style centered welcome (empty) → conversation mode (active); AI responses rendered as markdown (marked.js)
+- **Blade + inline rendering** — 48 Blade components exist, but chat and dashboard pages render UI inline with Alpine.js (`x-for`, `x-if`) and CSS classes for dynamic content
 - **Confidence tiers (queries)** — High (>95%): direct answer; Medium (70-95%): answer with caution; Low (<70%): clarify instead
 - **Mandatory confirmation (writes)** — All INSERT/UPDATE/DELETE show a summary and require explicit user confirmation
 
@@ -61,7 +68,7 @@ All write operations require user confirmation before execution. No silent write
 - [UI Design Spec](docs/design/ui-design-spec.md) — Component visual specs (Spotify dark-only), animations
 - [Component Library](docs/spec/00-component-library.md) — Blade Component definitions
 - [Backend Spec](docs/spec/01-phase1-backend.md) — Chat-to-Operate API (query + write + upload + dashboard)
-- [Frontend Spec](docs/spec/02-phase1-frontend.md) — Chat interface pages
+- [Frontend Spec](docs/spec/02-phase1-frontend.md) — Dashboard page + Chat page (Claude-style + markdown) + write confirmation + file upload
 
 ## Getting Started
 
@@ -85,7 +92,8 @@ npm install
 cp .env.example .env
 php artisan key:generate
 php artisan migrate
-php artisan db:seed --class=DemoSeeder   # demo account: admin@example.com / admin@example.com
+php artisan db:seed --class=DemoSeeder                # demo account: admin@example.com / admin@example.com
+php artisan tenant:provision 1 --fresh --seed          # provision tenant DB with demo data
 npm run build
 ```
 
@@ -110,6 +118,7 @@ npm run dev                      # Vite watch mode
 php artisan view:clear           # clear compiled Blade cache
 php artisan golden:run           # LLM accuracy test (150 cases, hits real API)
 php artisan golden:run --limit=10  # quick accuracy smoke test
+php artisan tenant:provision 1 --fresh --seed  # re-provision tenant DB
 ```
 
 ### Read the design first

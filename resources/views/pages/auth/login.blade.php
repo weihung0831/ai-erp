@@ -17,7 +17,7 @@
                     minDelay,
                 ]);
                 $store.auth.setToken(res.data.token);
-                window.location.href = '/chat';
+                window.location.href = '/dashboard';
             } catch (e) {
                 await minDelay;
                 this.error = e.response?.data?.message || '登入失敗，請稍後再試';
