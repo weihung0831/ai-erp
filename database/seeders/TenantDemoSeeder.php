@@ -21,7 +21,7 @@ use Illuminate\Support\Facades\DB;
  */
 class TenantDemoSeeder extends Seeder
 {
-    private const MONTHS_BACK = 17;
+    private const MONTHS_BACK = 12;
 
     public function run(): void
     {
