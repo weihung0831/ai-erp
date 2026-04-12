@@ -1,6 +1,4 @@
 <x-layouts.app title="登入">
-    <x-ui.theme-toggle />
-
     <div class="login-page" x-data="{
         email: '',
         password: '',

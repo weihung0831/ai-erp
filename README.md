@@ -9,12 +9,12 @@ AI-powered ERP platform that lets customers build and query ERP systems through 
 **Phase 1 backend complete; frontend integration in progress.** Laravel 13 + Sanctum scaffolded, all 42 Blade components implemented, and the Chat-to-query backend pipeline (LLM → SQL generation → execution → response) is working end-to-end.
 
 What's built:
-- `Controllers/Api/` — Auth, Chat, StreamChat (SSE), ChatHistory, QuickAction, Admin (QueryLog, SchemaField)
+- `Controllers/Api/` — Auth, Chat, StreamChat (SSE), ChatHistory, QuickAction, Admin (QuickAction, SchemaField)
 - `Services/` — QueryEngine, OpenAiGateway, SqlValidator, ConfidenceEstimator, TenantManager, TenantDatabaseManager
-- `Models/` — ChatHistory, Conversation, QueryLog, QuickAction, SchemaFieldRestriction, Tenant, User
+- `Models/` — ChatHistory, Conversation, QuickAction, SchemaFieldRestriction, Tenant, User
 - `Repositories/` — Contract + Eloquent implementation (Repository Pattern)
 - DB-per-tenant with 15 tenant migrations + demo seeder
-- Event-driven query logging, Golden accuracy test suite (150 cases)
+- Golden accuracy test suite (150 cases)
 
 Still to build: Phase 1 chat UI page, Phase 2 Build Engine, Phase 3 SaaS modules.
 
@@ -45,7 +45,7 @@ An ERP development company's product: instead of hiring developers to build cust
 
 - **API-first** — `Controllers/Api/` returns JSON; `Controllers/Web/` returns Blade views that make Axios calls to `/api/*`
 - **DB-per-tenant** — Each customer gets an isolated MySQL database
-- **Blade components** — All UI built with namespaced components (`<x-chat.bubble>`, `<x-data.table>`, etc.). The component library (42 components) is complete and browsable at `/components`
+- **Blade components** — All UI built with namespaced components (`<x-chat.bubble>`, `<x-data.table>`, etc.). 42 components complete
 
 ## Development Phases
 
@@ -98,8 +98,6 @@ composer run dev
 # Or just the PHP dev server
 php artisan serve
 ```
-
-Open **http://localhost:8000/components** to browse the Blade component library.
 
 ### Common commands
 

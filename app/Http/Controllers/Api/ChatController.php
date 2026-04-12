@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api;
 
 use App\DataTransferObjects\Chat\ChatQueryInput;
-use App\Events\QueryExecuted;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Chat\ChatRequest;
 use App\Repositories\Contracts\ChatHistoryRepositoryInterface;
@@ -66,8 +65,6 @@ class ChatController extends Controller
         ));
 
         $turn = $chatHistory->createTurn($conversation, $message, $result);
-
-        QueryExecuted::dispatch($turn, (int) $user->tenant_id, (int) $user->id);
 
         return response()->json([
             ...$result->toArray(),

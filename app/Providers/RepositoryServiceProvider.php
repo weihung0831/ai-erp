@@ -3,13 +3,11 @@
 namespace App\Providers;
 
 use App\Repositories\Contracts\ChatHistoryRepositoryInterface;
-use App\Repositories\Contracts\QueryLogRepositoryInterface;
 use App\Repositories\Contracts\QuickActionRepositoryInterface;
 use App\Repositories\Contracts\SchemaFieldRestrictionRepositoryInterface;
 use App\Repositories\Contracts\TenantRepositoryInterface;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Repositories\Eloquent\ChatHistoryRepository;
-use App\Repositories\Eloquent\QueryLogRepository;
 use App\Repositories\Eloquent\QuickActionRepository;
 use App\Repositories\Eloquent\SchemaFieldRestrictionRepository;
 use App\Repositories\Eloquent\TenantRepository;
@@ -28,7 +26,6 @@ class RepositoryServiceProvider extends ServiceProvider implements DeferrablePro
         UserRepositoryInterface::class => UserRepository::class,
         TenantRepositoryInterface::class => TenantRepository::class,
         ChatHistoryRepositoryInterface::class => ChatHistoryRepository::class,
-        QueryLogRepositoryInterface::class => QueryLogRepository::class,
         QuickActionRepositoryInterface::class => QuickActionRepository::class,
         SchemaFieldRestrictionRepositoryInterface::class => SchemaFieldRestrictionRepository::class,
     ];
@@ -44,7 +41,6 @@ class RepositoryServiceProvider extends ServiceProvider implements DeferrablePro
             UserRepositoryInterface::class,
             TenantRepositoryInterface::class,
             ChatHistoryRepositoryInterface::class,
-            QueryLogRepositoryInterface::class,
             QuickActionRepositoryInterface::class,
             SchemaFieldRestrictionRepositoryInterface::class,
         ];

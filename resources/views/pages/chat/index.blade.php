@@ -19,7 +19,7 @@
         </div>
 
         <div class="sidebar-body" x-show="sidebarOpen" x-transition.opacity>
-            <div class="px-5 pb-3">
+            <div class="px-5 pt-4 pb-3">
                 <button class="btn btn-primary btn-sm w-full" @click="$store.chat.newConversation()">
                     + 新對話
                 </button>
@@ -46,30 +46,27 @@
                     <p class="px-5 text-sm" style="color: var(--text-warm-silver);">尚無對話紀錄</p>
                 </template>
             </nav>
+
+            {{-- Nav --}}
+            <nav class="sidebar-admin-nav">
+                <a href="/admin/quick-actions" class="sidebar-item">快捷按鈕</a>
+                <a href="/admin/schema-fields" class="sidebar-item">欄位權限</a>
+            </nav>
+
+            {{-- User menu --}}
+            <div class="sidebar-footer" x-data="{ open: false }" @click.outside="open = false">
+                <button type="button" class="sidebar-user-btn" @click="open = !open">
+                    <span x-text="$store.auth.user?.name || '使用者'"></span> ▾
+                </button>
+                <div class="sidebar-user-menu" x-show="open" x-transition x-cloak>
+                    <a href="#" class="dropdown-item" @click.prevent="$store.auth.logout()">登出</a>
+                </div>
+            </div>
         </div>
     </aside>
 
     {{-- Main area --}}
     <div class="flex-1 flex flex-col min-w-0">
-        {{-- Header --}}
-        <header class="app-header">
-            <span class="company">聊天查詢</span>
-
-            <div class="row-sm items-center">
-                <x-ui.theme-toggle variant="labeled" />
-
-                <x-ui.dropdown align="right" width="180px">
-                    <x-slot:trigger>
-                        <button type="button" class="btn btn-text">
-                            <span x-text="$store.auth.user?.name || '使用者'"></span> ▾
-                        </button>
-                    </x-slot:trigger>
-
-                    <a href="#" class="dropdown-item" @click.prevent="$store.auth.logout()">登出</a>
-                </x-ui.dropdown>
-            </div>
-        </header>
-
         {{-- Chat area --}}
         <div class="flex-1 flex flex-col overflow-hidden relative" x-data="{ showScrollTop: false }">
             {{-- Messages --}}

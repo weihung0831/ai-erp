@@ -577,11 +577,11 @@ code, pre {
     height: 100vh;
     background: var(--sidebar-bg, #141413);
     color: var(--sidebar-fg, #b0aea5);
-    padding: 20px 0;
+    padding: 0;
     display: flex;
     flex-direction: column;
     gap: 4px;
-    overflow-y: auto;
+    overflow: visible;
     flex-shrink: 0;
 }
 .sidebar-logo {
@@ -615,10 +615,9 @@ code, pre {
     display: flex;
     align-items: center;
     padding: 0 12px 0 20px;
-    min-height: 22px;
+    height: 56px;
+    flex-shrink: 0;
     border-bottom: 1px solid var(--sidebar-divider, #30302e);
-    margin-bottom: 16px;
-    padding-bottom: 20px;
 }
 .sidebar-head .sidebar-logo {
     padding: 0;
@@ -681,6 +680,49 @@ code, pre {
 }
 .sidebar-conv-item:hover .sidebar-conv-delete { opacity: 1; }
 .sidebar-conv-delete:hover { color: var(--error); }
+
+/* Sidebar — footer with user menu ------------------------------------------*/
+.sidebar-footer {
+    position: relative;
+    padding: 12px 20px;
+    border-top: 1px solid var(--sidebar-divider, #30302e);
+    margin-top: auto;
+}
+.sidebar-user-btn {
+    background: transparent;
+    border: none;
+    color: var(--sidebar-fg, #b0aea5);
+    font-size: 14px;
+    cursor: pointer;
+    padding: 6px 0;
+    width: 100%;
+    text-align: left;
+    transition: color 150ms ease;
+}
+.sidebar-user-btn:hover { color: #ffffff; }
+.sidebar-user-menu {
+    position: absolute;
+    bottom: 100%;
+    left: 8px;
+    right: 8px;
+    margin-bottom: 4px;
+    background: var(--sidebar-hover, #30302e);
+    border-radius: 8px;
+    padding: 4px 0;
+    z-index: 40;
+}
+.sidebar-user-menu .dropdown-item {
+    color: var(--sidebar-fg, #b0aea5);
+}
+.sidebar-user-menu .dropdown-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+}
+/* Sidebar — admin nav ------------------------------------------------------ */
+.sidebar-admin-nav {
+    padding: 8px 0;
+    border-top: 1px solid var(--sidebar-divider, #30302e);
+}
 
 /* === Chat scroll-to-top ================================================== */
 .chat-scroll-top {

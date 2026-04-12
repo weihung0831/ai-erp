@@ -4,7 +4,6 @@ namespace Tests\Feature\Api;
 
 use App\Models\ChatHistory;
 use App\Models\Conversation;
-use App\Models\QueryLog;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -86,19 +85,6 @@ class ChatHistoryControllerTest extends TestCase
 
         $this->assertDatabaseMissing('conversations', ['id' => $conv->id]);
         $this->assertDatabaseCount('chat_histories', 0);
-    }
-
-    public function test_destroy_nullifies_query_log_fk(): void
-    {
-        $conv = Conversation::factory()->forUser($this->user)->create();
-        $turn = ChatHistory::factory()->forConversation($conv)->create();
-        $log = QueryLog::factory()->create(['chat_history_id' => $turn->id]);
-
-        $this->actingAs($this->user)
-            ->deleteJson("/api/chat/history/{$conv->uuid}")
-            ->assertOk();
-
-        $this->assertDatabaseHas('query_logs', ['id' => $log->id, 'chat_history_id' => null]);
     }
 
     public function test_destroy_requires_authentication(): void

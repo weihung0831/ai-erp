@@ -21,7 +21,7 @@ export default {
     async fetchUser() {
         try {
             const res = await window.axios.get('/api/user');
-            this.user = res.data;
+            this.user = res.data.user;
         } catch {
             this.clearToken();
         }

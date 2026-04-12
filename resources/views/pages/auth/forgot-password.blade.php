@@ -1,6 +1,4 @@
 <x-layouts.app title="忘記密碼">
-    <x-ui.theme-toggle />
-
     <div class="login-page" x-data="{
         email: '',
         error: null,

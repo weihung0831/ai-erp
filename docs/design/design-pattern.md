@@ -337,8 +337,6 @@ public function handle(ChatRequest $request, QueryEngine $queryEngine): JsonResp
 
 | Event | Listener | 說明 |
 |-------|----------|------|
-| `QueryExecuted` | `LogQueryListener` | 記錄查詢日誌 |
-| `QueryExecuted` | `TrackTokenUsageListener` | 追蹤 token 用量 |
 | `SchemaBuilt` | `UpdateSchemaMetadataListener` | 更新 schema metadata |
 | `SchemaBuilt` | `RecordVersionListener` | 記錄 schema 版本 |
 | `TenantCreated` | `CreateTenantDatabaseListener` | 建立租戶 DB |
@@ -607,8 +605,8 @@ document.addEventListener('alpine:init', () => {
 | Enum | PascalCase，TitleCase 成員 | `ConfidenceLevel` |
 | Domain Exception | PascalCase + Exception 後綴 | `InvalidSqlException` |
 | Fake | `Fake` 前綴 + interface 名稱 | `FakeLlmGateway` |
-| Event | PascalCase，過去式 | `QueryExecuted` |
-| Listener | PascalCase + Listener 後綴 | `LogQueryListener` |
+| Event | PascalCase，過去式 | `SchemaBuilt` |
+| Listener | PascalCase + Listener 後綴 | `UpdateSchemaMetadataListener` |
 | Factory | PascalCase + Factory 後綴 | `LlmGatewayFactory` |
 | Blade Component | kebab-case，點分隔命名空間 | `<x-chat.bubble>` |
 | Alpine Store | camelCase | `chatStore` |

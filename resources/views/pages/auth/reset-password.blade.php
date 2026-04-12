@@ -1,6 +1,4 @@
 <x-layouts.app title="重設密碼">
-    <x-ui.theme-toggle />
-
     <div class="login-page" x-data="{
         email: @js($email),
         token: @js($token),

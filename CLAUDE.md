@@ -34,13 +34,12 @@ AI ERP 平台，讓客戶用對話建構和查詢 ERP 系統。團隊本身是 E
 **Phase 1 後端完成、前端整合中。** Laravel 13 + Sanctum 已 scaffold、42 個 Blade Component 已全數實作、Chat-to-query 後端 17 支 API 全部到位（含 SSE 串流）、Golden Test 150 筆 100% pass。
 
 **已建立的核心目錄：**
-- `app/Http/Controllers/Api/` — AuthController, ChatController, StreamChatController, ChatHistoryController, QuickActionController, Admin/{QueryLogController, QuickActionController, SchemaFieldController}
+- `app/Http/Controllers/Api/` — AuthController, ChatController, StreamChatController, ChatHistoryController, QuickActionController, Admin/{QuickActionController, SchemaFieldController}
 - `app/Services/` — Ai/（LlmGateway, OpenAiGateway, QueryEngine, SqlValidator, ConfidenceEstimator）, Schema/, Tenant/（TenantManager, TenantDatabaseManager）
-- `app/Models/` — ChatHistory, Conversation, QueryLog, QuickAction, SchemaFieldRestriction, Tenant, User
+- `app/Models/` — ChatHistory, Conversation, QuickAction, SchemaFieldRestriction, Tenant, User
 - `app/Repositories/` — Contracts/ + Eloquent/ 實作（Repository Pattern 已套用）
 - `app/DataTransferObjects/` — Chat/, Schema/
 - `app/Enums/` — ChatResponseType, ConfidenceLevel, UserRole, ValueFormat
-- `app/Events/QueryExecuted` + `app/Listeners/LogQueryListener`（event-driven query logging）
 - `app/Support/` — CurrencyFormatter, NumberFormatter
 - `app/Console/Commands/` — GoldenAccuracyCommand, TenantProvisionCommand
 - `app/Providers/RepositoryServiceProvider.php`
@@ -99,7 +98,6 @@ php artisan db:seed --class=DemoSeeder
 - **API-first：** Blade 頁面透過 Axios 呼叫自己的 `/api/*` 端點
 - **Blade 元件化：** 所有 UI 用 `<x-chat.bubble>` 等巢狀命名空間的 Blade Component
 - **信心度分層：** Chat-to-query 的核心機制——高（> 95%）直接回答、中（70-95%）附提示、低（< 70%）不回答改引導釐清
-- **Event-driven logging：** `QueryExecuted` event + `LogQueryListener`，query log 不在 controller 裡寫
 - **Golden Test Suite：** `tests/Golden/GoldenQueryEngineTest.php` + `tests/Golden/Fixtures/` 用 data-driven 方式校準 QueryEngine 準確率，`php artisan golden:run` 可跑精度測試
 
 ## 設計模式
@@ -113,7 +111,7 @@ php artisan db:seed --class=DemoSeeder
 
 ## Blade 元件系統
 
-所有 42 個元件在 `resources/views/components/{namespace}/`，showcase 頁 `/components`。
+所有 42 個元件在 `resources/views/components/{namespace}/`。
 
 ### 命名空間 gotcha：`layout/` vs `layouts/`（單複數）
 

@@ -10,7 +10,7 @@ class ExampleTest extends TestCase
     /**
      * A basic test example.
      */
-    public function test_root_redirects_to_component_showcase(): void
+    public function test_root_redirects_to_chat(): void
     {
         $response = $this->get('/');
 

@@ -8,8 +8,7 @@ use RuntimeException;
  * SqlValidator 驗證失敗時拋出。
  *
  * reasonCode 用於 QueryEngine 判斷要回哪種使用者訊息或記錄哪種 metric；
- * message 本身則是給 log / debugger 看的。offendingSql 保留原始 SQL 供日誌追蹤
- * （注意：記錄到 chat_histories 時要依 US-8 的存取規則決定是否揭露給管理員）。
+ * message 本身則是給 log / debugger 看的。offendingSql 保留原始 SQL 供除錯追蹤。
  */
 final class InvalidSqlException extends RuntimeException
 {

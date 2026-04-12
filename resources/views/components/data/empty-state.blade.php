@@ -5,7 +5,7 @@
 ])
 
 <div class="empty-state">
-    <div class="empty-title">📭 {{ $message }}</div>
+    <div class="empty-title">{{ $message }}</div>
     @if ($action && $actionUrl)
         <a href="{{ $actionUrl }}" class="btn btn-primary btn-sm">{{ $action }}</a>
     @endif

@@ -9,12 +9,12 @@
 **Phase 1 後端完成，前端整合中。** Laravel 13 + Sanctum 已 scaffold、42 個 Blade Component 已全數實作、Chat-to-query 後端 pipeline（LLM → SQL 生成 → 執行 → 回傳）已端到端跑通。
 
 已建立：
-- `Controllers/Api/` — Auth、Chat、StreamChat（SSE）、ChatHistory、QuickAction、Admin（QueryLog、SchemaField）
+- `Controllers/Api/` — Auth、Chat、StreamChat（SSE）、ChatHistory、QuickAction、Admin（QuickAction、SchemaField）
 - `Services/` — QueryEngine、OpenAiGateway、SqlValidator、ConfidenceEstimator、TenantManager、TenantDatabaseManager
-- `Models/` — ChatHistory、Conversation、QueryLog、QuickAction、SchemaFieldRestriction、Tenant、User
+- `Models/` — ChatHistory、Conversation、QuickAction、SchemaFieldRestriction、Tenant、User
 - `Repositories/` — Contract + Eloquent 實作（Repository Pattern）
 - DB-per-tenant 含 15 個 tenant migrations + demo seeder
-- Event-driven query logging、Golden accuracy test suite（150 筆案例）
+- Golden accuracy test suite（150 筆案例）
 
 **尚未建立：** Phase 1 聊天 UI 頁面、Phase 2 Build Engine、Phase 3 SaaS 模組。
 
@@ -45,7 +45,7 @@
 
 - **API-first** — `Controllers/Api/` 回傳 JSON；`Controllers/Web/` 回傳 Blade view，透過 Axios 呼叫 `/api/*`
 - **DB-per-tenant** — 每個客戶獨立 MySQL DB
-- **Blade 元件化** — 所有 UI 用巢狀命名空間元件（`<x-chat.bubble>`、`<x-data.table>` 等）。42 個元件庫已全部完成，可在 `/components` 預覽
+- **Blade 元件化** — 所有 UI 用巢狀命名空間元件（`<x-chat.bubble>`、`<x-data.table>` 等），共 42 個元件
 
 ## 開發階段
 
@@ -98,8 +98,6 @@ composer run dev
 # 或只啟 PHP dev server
 php artisan serve
 ```
-
-打開 **http://localhost:8000/components** 檢視 Blade 元件庫展示頁。
 
 ### 常用指令
 

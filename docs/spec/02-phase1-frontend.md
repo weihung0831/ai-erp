@@ -11,14 +11,13 @@
 - [x] 忘記密碼頁
 - [x] 重設密碼頁
 - [x] 聊天頁（主頁面）
-- [ ] 查詢日誌頁（admin）
-- [ ] 快捷按鈕管理頁（admin）
-- [ ] 敏感欄位管理頁（admin）
+- [ ] 快捷按鈕管理頁
+- [ ] 敏感欄位管理頁
 
 ### 元件（使用中）
 - [x] `<x-layout.page>` / `<x-layout.sidebar>` / `<x-layout.header>`
 - [x] `<x-chat.bubble>` / `<x-chat.input>` / `<x-chat.quick-actions>` / `<x-chat.confidence>` / `<x-chat.typing>` / `<x-chat.result-table>` / `<x-chat.result-number>`
-- [ ] `<x-data.table>` / `<x-data.pagination>` / `<x-data.empty-state>`
+- [x] `<x-data.table>` / `<x-data.pagination>` / `<x-data.empty-state>`
 - [x] `<x-form.input>`
 - [x] `<x-ui.button>` / `<x-ui.alert>` / `<x-ui.modal>` / `<x-ui.dropdown>` / `<x-ui.loading>` / `<x-ui.toast>` / `<x-ui.tooltip>`
 
@@ -117,31 +116,7 @@ x-data="{
 - 對話項目 hover 時顯示 `×` 刪除按鈕，點擊刪除該對話
 - Header 右上角使用者 dropdown 包含「登出」按鈕，點擊後呼叫 `POST /api/logout` 撤銷 server token，再清除 localStorage token 並跳轉登入頁
 
-### 3. 查詢日誌頁（admin）
-
-**路由：** `GET /admin/query-logs`
-**Web Controller：** `Web\AdminController@queryLogs`
-**用途：** 管理員查看所有查詢紀錄
-
-**頁面結構：**
-```
-<x-layout.page title="查詢日誌">
-    ├── 篩選列
-    │   ├── 日期範圍選擇
-    │   ├── 使用者篩選（下拉）
-    │   └── 篩選按鈕
-    ├── <x-data.table>             // 查詢紀錄表格
-    │   ├── 欄位：時間、使用者、問題、回應、信心度、正確性
-    │   └── 操作：標記正確/錯誤
-    └── <x-data.pagination>
-</x-layout.page>
-```
-
-**串接 API：**
-- `GET /api/admin/query-logs?page=1&user_id=xxx&date_from=xxx&date_to=xxx`
-- `PATCH /api/admin/query-logs/{id}` → 標記正確/錯誤
-
-### 4. 忘記密碼頁
+### 3. 忘記密碼頁
 
 **路由：** `GET /forgot-password`
 **Web Controller：** `Web\AuthPageController@forgotPassword`
@@ -168,7 +143,7 @@ x-data="{
 **串接 API：**
 - `POST /api/reset-password` → 重設密碼
 
-### 6. 快捷按鈕管理頁（admin）
+### 6. 快捷按鈕管理頁
 
 **路由：** `GET /admin/quick-actions`
 **Web Controller：** `Web\AdminController@quickActions`
@@ -189,7 +164,7 @@ x-data="{
 - `POST /api/admin/quick-actions`
 - `DELETE /api/admin/quick-actions/{id}`
 
-### 7. 敏感欄位管理頁（admin）
+### 7. 敏感欄位管理頁
 
 **路由：** `GET /admin/schema-fields`
 **Web Controller：** `Web\AdminController@schemaFields`

@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api;
 
 use App\DataTransferObjects\Chat\ChatQueryInput;
-use App\Events\QueryExecuted;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Chat\ChatRequest;
 use App\Repositories\Contracts\ChatHistoryRepositoryInterface;
@@ -68,7 +67,7 @@ class StreamChatController extends Controller
             conversationHistory: $history,
         );
 
-        return response()->stream(function () use ($queryEngine, $input, $chatHistory, $conversation, $conversationUuid, $message, $user): void {
+        return response()->stream(function () use ($queryEngine, $input, $chatHistory, $conversation, $conversationUuid, $message): void {
             // 丟棄 output buffer（不 flush，避免 middleware 殘留內容污染 SSE）
             while (ob_get_level() > 0) {
                 ob_end_clean();
@@ -88,7 +87,6 @@ class StreamChatController extends Controller
             try {
                 $result = $generator->getReturn();
                 $turn = $chatHistory->createTurn($conversation, $message, $result);
-                QueryExecuted::dispatch($turn, (int) $user->tenant_id, (int) $user->id);
             } catch (\Throwable $e) {
                 report($e);
             }

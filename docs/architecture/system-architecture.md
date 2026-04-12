@@ -215,13 +215,6 @@ ai_erp_db
 │   ├── sql_generated  # 產生的 SQL（供審計）
 │   ├── confidence     # 信心度分數
 │   └── created_at
-├── query_logs         # 查詢日誌（準確率追蹤）
-│   ├── id
-│   ├── tenant_id
-│   ├── sql
-│   ├── result_hash
-│   ├── is_correct     # 使用者回饋：正確/錯誤
-│   └── tokens_used
 └── subscriptions      # 訂閱資訊
     ├── id
     ├── tenant_id
@@ -390,8 +383,7 @@ ai-erp/
 │   │   ├── dashboard/
 │   │   │   └── index.blade.php             # 儀表板
 │   │   ├── admin/
-│   │   │   ├── tenants.blade.php           # 租戶管理
-│   │   │   └── query-logs.blade.php        # 查詢日誌
+│   │   │   └── tenants.blade.php           # 租戶管理
 │   │   └── components/                      # Blade 共用元件（巢狀命名空間）
 │   │       ├── chat/                        # <x-chat.bubble> 等
 │   │       ├── data/                        # <x-data.table> 等
