@@ -108,6 +108,7 @@ class ChatControllerTest extends TestCase
             ->assertJsonStructure([
                 'reply',
                 'confidence',
+                'confidence_level',
                 'type',
                 'data' => ['value', 'value_format'],
                 'sql',
@@ -117,6 +118,7 @@ class ChatControllerTest extends TestCase
                 'reply' => '本月營收為 NT$1,234,567',
                 'type' => 'numeric',
                 'confidence' => 0.97,
+                'confidence_level' => 'high',
                 'data' => [
                     'value' => 1234567,
                     'value_format' => 'currency',
@@ -147,6 +149,7 @@ class ChatControllerTest extends TestCase
             ->assertJson([
                 'reply' => '目前有 12,345 位客戶',
                 'type' => 'numeric',
+                'confidence_level' => 'high',
                 'data' => ['value' => 12345, 'value_format' => 'count'],
             ]);
     }
@@ -176,6 +179,7 @@ class ChatControllerTest extends TestCase
             ->assertJsonStructure([
                 'reply',
                 'confidence',
+                'confidence_level',
                 'type',
                 'data' => ['headers', 'rows', 'truncated'],
                 'sql',
@@ -185,6 +189,7 @@ class ChatControllerTest extends TestCase
                 'reply' => '以下是應收帳款超過 60 天的 2 位客戶',
                 'type' => 'table',
                 'confidence' => 0.92,
+                'confidence_level' => 'mid',
                 'data' => [
                     'headers' => ['客戶名稱', '應收金額', '逾期天數'],
                     'rows' => [
@@ -207,6 +212,7 @@ class ChatControllerTest extends TestCase
             ->assertOk()
             ->assertJson([
                 'type' => 'error',
+                'confidence_level' => 'low',
                 'reply' => '系統忙碌，請稍後再試',
             ]);
     }

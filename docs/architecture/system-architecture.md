@@ -31,7 +31,7 @@
 - Alpine.js 元件管理聊天狀態（對話歷史、載入中、信心度顯示）
 - Axios 呼叫 `POST /api/chat` 送出訊息，接收 JSON 回應後渲染
 - 串流回應透過 Axios + SSE 接收
-- UI 遵循 Claude DESIGN.md 設計規範（溫暖色調、parchment 背景）
+- UI 遵循 Claude [DESIGN.md](../../DESIGN.md) 設計規範（溫暖色調、parchment 背景）
 
 ### 2. Tenant Manager（多租戶管理）
 

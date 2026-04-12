@@ -3,6 +3,7 @@
 namespace App\DataTransferObjects\Chat;
 
 use App\Enums\ChatResponseType;
+use App\Enums\ConfidenceLevel;
 
 /**
  * QueryEngine 的輸出 DTO。ChatController 會呼叫 toArray() 轉成 JSON response。
@@ -27,12 +28,14 @@ final readonly class ChatQueryResult
         public array $data,
         public ?string $sql = null,
         public int $tokensUsed = 0,
+        public ConfidenceLevel $confidenceLevel = ConfidenceLevel::Low,
     ) {}
 
     /**
      * @return array{
      *     reply: string,
      *     confidence: float,
+     *     confidence_level: string,
      *     type: string,
      *     data: array<string, mixed>,
      *     sql: ?string,
@@ -44,6 +47,7 @@ final readonly class ChatQueryResult
         return [
             'reply' => $this->reply,
             'confidence' => $this->confidence,
+            'confidence_level' => $this->confidenceLevel->value,
             'type' => $this->type->value,
             'data' => $this->data,
             'sql' => $this->sql,

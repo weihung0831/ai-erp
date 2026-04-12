@@ -7,6 +7,7 @@ use App\DataTransferObjects\Chat\ChatQueryResult;
 use App\DataTransferObjects\Schema\SchemaContext;
 use App\DataTransferObjects\Schema\TableMetadata;
 use App\Enums\ChatResponseType;
+use App\Enums\ConfidenceLevel;
 use App\Enums\ValueFormat;
 use App\Services\Schema\SchemaIntrospector;
 use App\Services\Tenant\TenantQueryExecutor;
@@ -29,16 +30,13 @@ use Throwable;
  * - execute_query_table  → handleTableQuery()   → ChatResponseType::Table
  *
  * 未支援（對應 US）：
- * - 多輪對話（US-3）、SQL preview 呈現（US-4）、敏感欄位（US-7）
+ * - 敏感欄位（US-7）
  *
  * 錯誤處理原則：任何內部例外（LLM、validator、executor）都 catch 並轉為
  * ChatQueryResult(type=Error)，不讓例外往上傳給 controller，讓 HTTP 層保持 thin。
  */
 final class QueryEngine
 {
-    /** 信心度閾值：低於此值不執行 SQL，改為回 Clarification。 */
-    private const float LOW_CONFIDENCE_THRESHOLD = 0.70;
-
     /**
      * 表格查詢結果 row 數上限。SQL 結果超過此值會被截斷（保留前 N 筆），
      * 同時在 data.truncated 設為 true 讓前端提示使用者縮小查詢範圍。
@@ -90,6 +88,7 @@ final class QueryEngine
                 data: [],
                 sql: null,
                 tokensUsed: $response->tokensUsed,
+                confidenceLevel: ConfidenceLevel::Low,
             );
         }
 
@@ -127,8 +126,9 @@ final class QueryEngine
         }
 
         $confidence = $this->confidenceEstimator->adjust($baseConfidence, $sql);
+        $level = ConfidenceLevel::fromScore($confidence);
 
-        if ($confidence < self::LOW_CONFIDENCE_THRESHOLD) {
+        if ($level === ConfidenceLevel::Low) {
             return $this->lowConfidenceClarification($confidence, $sql, $response->tokensUsed);
         }
 
@@ -163,6 +163,7 @@ final class QueryEngine
             ],
             sql: $sql,
             tokensUsed: $response->tokensUsed,
+            confidenceLevel: $level,
         );
     }
 
@@ -196,8 +197,9 @@ final class QueryEngine
         }
 
         $confidence = $this->confidenceEstimator->adjust($baseConfidence, $sql);
+        $level = ConfidenceLevel::fromScore($confidence);
 
-        if ($confidence < self::LOW_CONFIDENCE_THRESHOLD) {
+        if ($level === ConfidenceLevel::Low) {
             return $this->lowConfidenceClarification($confidence, $sql, $response->tokensUsed);
         }
 
@@ -237,11 +239,12 @@ final class QueryEngine
             ],
             sql: $sql,
             tokensUsed: $response->tokensUsed,
+            confidenceLevel: $level,
         );
     }
 
     /**
-     * 低信心度（< LOW_CONFIDENCE_THRESHOLD）走這條路：不執行 SQL，回 Clarification
+     * 低信心度（ConfidenceLevel::Low）走這條路：不執行 SQL，回 Clarification
      * 讓使用者補充細節。scalar 和 table 兩路共用同一段措辭。
      */
     private function lowConfidenceClarification(float $confidence, string $sql, int $tokensUsed): ChatQueryResult
@@ -253,6 +256,7 @@ final class QueryEngine
             data: [],
             sql: $sql,
             tokensUsed: $tokensUsed,
+            confidenceLevel: ConfidenceLevel::Low,
         );
     }
 
@@ -463,6 +467,7 @@ final class QueryEngine
             confidence: 0.0,
             type: ChatResponseType::Error,
             data: [],
+            confidenceLevel: ConfidenceLevel::Low,
         );
     }
 }

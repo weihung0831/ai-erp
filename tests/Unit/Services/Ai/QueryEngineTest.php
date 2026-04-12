@@ -4,6 +4,7 @@ namespace Tests\Unit\Services\Ai;
 
 use App\DataTransferObjects\Chat\ChatQueryInput;
 use App\Enums\ChatResponseType;
+use App\Enums\ConfidenceLevel;
 use App\Services\Ai\ConfidenceEstimator;
 use App\Services\Ai\LlmResponse;
 use App\Services\Ai\QueryEngine;
@@ -52,6 +53,7 @@ final class QueryEngineTest extends TestCase
         ));
 
         $this->assertSame(ChatResponseType::Numeric, $result->type);
+        $this->assertSame(ConfidenceLevel::High, $result->confidenceLevel);
         $this->assertSame('本月營收為 NT$1,234,567', $result->reply);
         $this->assertSame(0.97, $result->confidence);
         $this->assertSame(1234567, $result->data['value']);
@@ -236,6 +238,7 @@ final class QueryEngineTest extends TestCase
         $result = $this->engine->handle(new ChatQueryInput(message: '???', tenantId: 1));
 
         $this->assertSame(ChatResponseType::Clarification, $result->type);
+        $this->assertSame(ConfidenceLevel::Low, $result->confidenceLevel);
         $this->assertStringContainsString('不太確定', $result->reply);
         $this->assertSame(0.50, $result->confidence);
         $this->assertSame(0, $this->executor->callCount(), '低信心度不該執行 SQL');
@@ -259,6 +262,7 @@ final class QueryEngineTest extends TestCase
         $result = $this->engine->handle(new ChatQueryInput(message: '營收', tenantId: 1));
 
         $this->assertSame(ChatResponseType::Numeric, $result->type);
+        $this->assertSame(ConfidenceLevel::Mid, $result->confidenceLevel);
         $this->assertSame('營收 NT$500,000', $result->reply);
         $this->assertSame(0.80, $result->confidence);
         $this->assertSame(1, $this->executor->callCount());
@@ -282,6 +286,7 @@ final class QueryEngineTest extends TestCase
         $result = $this->engine->handle(new ChatQueryInput(message: '姓王的客戶幾個', tenantId: 1));
 
         $this->assertSame(ChatResponseType::Clarification, $result->type);
+        $this->assertSame(ConfidenceLevel::Low, $result->confidenceLevel);
         $this->assertEqualsWithDelta(0.65, $result->confidence, 0.0001);
         $this->assertSame(0, $this->executor->callCount());
     }
@@ -310,6 +315,7 @@ final class QueryEngineTest extends TestCase
         ));
 
         $this->assertSame(ChatResponseType::Table, $result->type);
+        $this->assertSame(ConfidenceLevel::Mid, $result->confidenceLevel);
         $this->assertSame('以下是應收帳款超過 60 天的 2 位客戶', $result->reply);
         $this->assertSame(0.93, $result->confidence);
         $this->assertSame(['客戶名稱', '應收金額', '逾期天數'], $result->data['headers']);
@@ -417,6 +423,7 @@ final class QueryEngineTest extends TestCase
         $result = $this->engine->handle(new ChatQueryInput(message: '...', tenantId: 1));
 
         $this->assertSame(ChatResponseType::Clarification, $result->type);
+        $this->assertSame(ConfidenceLevel::Low, $result->confidenceLevel);
         $this->assertStringContainsString('不太確定', $result->reply);
         $this->assertSame(0.50, $result->confidence);
         $this->assertSame(0, $this->executor->callCount(), '低信心度的 table query 不該執行 SQL');
