@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ChatController;
+use App\Http\Controllers\Api\ChatHistoryController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login'])->name('api.login');
@@ -15,5 +16,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
 
     Route::middleware('tenant')->group(function (): void {
         Route::post('/chat', [ChatController::class, 'handle'])->name('api.chat');
+        Route::get('/chat/history', [ChatHistoryController::class, 'index'])->name('api.chat.history');
+        Route::get('/chat/history/{conversationUuid}', [ChatHistoryController::class, 'show'])->name('api.chat.history.show');
     });
 });

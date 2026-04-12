@@ -2,8 +2,10 @@
 
 namespace App\Providers;
 
+use App\Repositories\Contracts\ChatHistoryRepositoryInterface;
 use App\Repositories\Contracts\TenantRepositoryInterface;
 use App\Repositories\Contracts\UserRepositoryInterface;
+use App\Repositories\Eloquent\ChatHistoryRepository;
 use App\Repositories\Eloquent\TenantRepository;
 use App\Repositories\Eloquent\UserRepository;
 use Illuminate\Contracts\Support\DeferrableProvider;
@@ -19,6 +21,7 @@ class RepositoryServiceProvider extends ServiceProvider implements DeferrablePro
     public array $bindings = [
         UserRepositoryInterface::class => UserRepository::class,
         TenantRepositoryInterface::class => TenantRepository::class,
+        ChatHistoryRepositoryInterface::class => ChatHistoryRepository::class,
     ];
 
     /**
@@ -31,6 +34,7 @@ class RepositoryServiceProvider extends ServiceProvider implements DeferrablePro
         return [
             UserRepositoryInterface::class,
             TenantRepositoryInterface::class,
+            ChatHistoryRepositoryInterface::class,
         ];
     }
 }
