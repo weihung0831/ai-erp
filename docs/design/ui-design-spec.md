@@ -303,7 +303,7 @@ Mobile 斷點（< 768px）時取代側邊欄。
 
 ### 開發優先級
 
-Phase 1 先實作 light mode。Dark mode 在 Phase 1 完成後作為體驗優化加入。
+先實作 light mode。Dark mode 作為後續體驗優化加入。
 
 ## Dropdown 選單（`<x-ui.dropdown>`）
 

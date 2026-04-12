@@ -1,6 +1,6 @@
 # Blade 元件庫規格
 
-日期：2026-04-11
+日期：2026-04-12（更新）
 狀態：已核准
 依據：[UI 設計規範](../design/ui-design-spec.md) / [設計模式](../design/design-pattern.md)
 
@@ -10,7 +10,7 @@
 
 ## 進度追蹤
 
-### Phase 1 基礎元件（與 Phase 1 前端同步開發）
+### 核心元件（已實作）
 
 **Layout**
 - [x] `<x-layout.page>` — 頁面框架
@@ -43,19 +43,16 @@
 - [x] `<x-ui.toast>` — 即時通知（操作回饋）
 - [x] `<x-ui.tooltip>` — hover 提示
 
-### Phase 2 動態 CRUD 元件
+### 待開發元件
 
-**Build**
-- [x] `<x-build.module-card>` — 模組預覽卡片
-- [x] `<x-build.schema-preview>` — Schema 預覽
-- [x] `<x-build.column-row>` — 欄位定義行
-- [x] `<x-build.industry-picker>` — 產業選擇器
-- [x] `<x-build.module-checklist>` — 模組勾選清單
-- [x] `<x-build.confirm-dialog>` — 建構確認對話框
+**Chat 擴充（寫入操作）**
+- [ ] `<x-chat.confirm-action>` — 寫入確認卡片（操作摘要 + 確認/取消按鈕）
+- [ ] `<x-chat.upload-preview>` — 檔案上傳預覽（欄位對應表 + 確認/取消）
+- [ ] `<x-chat.file-input>` — 檔案上傳按鈕（📎 圖示）
 
-**CRUD**
-- [x] `<x-crud.dynamic-table>` — 動態 CRUD 表格
-- [x] `<x-crud.dynamic-form>` — 動態 CRUD 表單
+**Dashboard**
+- [ ] `<x-dashboard.panel>` — Dashboard 面板容器（可收合）
+- [ ] `<x-dashboard.stat-card>` — Dashboard 指標卡片（依 schema metadata 動態產生）
 
 **Form 補充**
 - [x] `<x-form.textarea>` — 多行文字
@@ -67,22 +64,29 @@
 **UI 補充**
 - [x] `<x-ui.badge>` — 標籤
 
-### Phase 3 SaaS 管理元件
-
-**Onboarding**
-- [x] `<x-onboarding.step>` — Onboarding 步驟容器
-- [x] `<x-onboarding.progress>` — 進度指示器
-
-**Billing**
-- [x] `<x-billing.plan-card>` — 方案卡片
-- [x] `<x-billing.usage-bar>` — 用量進度條
-
-**Admin**
-- [x] `<x-admin.tenant-card>` — 租戶資訊卡片
-- [x] `<x-admin.trend-chart>` — 趨勢圖表
-
 **Data 補充**
 - [x] `<x-data.stat-card>` — 數據統計卡片
+
+### 初始版本不包含的元件（已實作但暫不使用）
+
+以下元件已實作但因產品重新定位（砍掉 Chat-to-build 和 SaaS 模組）暫不使用：
+
+**Build**（Chat-to-build 已移除）
+- [x] `<x-build.module-card>` — 模組預覽卡片
+- [x] `<x-build.schema-preview>` — Schema 預覽
+- [x] `<x-build.column-row>` — 欄位定義行
+- [x] `<x-build.industry-picker>` — 產業選擇器
+- [x] `<x-build.module-checklist>` — 模組勾選清單
+- [x] `<x-build.confirm-dialog>` — 建構確認對話框
+
+**CRUD**（傳統 CRUD UI 已移除）
+- [x] `<x-crud.dynamic-table>` — 動態 CRUD 表格
+- [x] `<x-crud.dynamic-form>` — 動態 CRUD 表單
+
+**Onboarding / Billing / Admin**（SaaS 模組延後）
+- [x] `<x-onboarding.step>` / `<x-onboarding.progress>`
+- [x] `<x-billing.plan-card>` / `<x-billing.usage-bar>`
+- [x] `<x-admin.tenant-card>` / `<x-admin.trend-chart>`
 
 ## 元件介面定義
 
@@ -339,7 +343,7 @@ hover 提示文字。
 | text | string | 是 | — | 提示文字 |
 | position | string | 否 | `top` | `top` / `bottom` / `left` / `right` |
 
-### Build 元件（Phase 2）
+### Build 元件（初始版本不包含）
 
 #### `<x-build.module-card>`
 
@@ -398,7 +402,7 @@ hover 提示文字。
 | tables | array | 是 | — | 將要建立的 table 清單 |
 | show | string | 是 | — | Alpine.js 變數名稱 |
 
-### CRUD 元件（Phase 2）
+### CRUD 元件（初始版本不包含）
 
 #### `<x-crud.dynamic-table>`
 
@@ -422,7 +426,7 @@ hover 提示文字。
 | module | string | 是 | — | 模組名稱（用於 API 路徑） |
 | isEdit | bool | 否 | false | 是否為編輯模式 |
 
-### Onboarding 元件（Phase 3）
+### Onboarding 元件（初始版本不包含）
 
 #### `<x-onboarding.step>`
 
@@ -443,7 +447,7 @@ Onboarding 步驟容器。
 | current | int | 是 | — | 目前步驟 |
 | total | int | 是 | — | 總步驟數 |
 
-### Billing 元件（Phase 3）
+### Billing 元件（初始版本不包含）
 
 #### `<x-billing.plan-card>`
 
@@ -468,7 +472,7 @@ Onboarding 步驟容器。
 | limit | int | 是 | — | 上限 |
 | warning | float | 否 | 0.8 | 警告閾值（百分比） |
 
-### Admin 元件（Phase 3）
+### Admin 元件（初始版本不包含）
 
 #### `<x-admin.tenant-card>`
 

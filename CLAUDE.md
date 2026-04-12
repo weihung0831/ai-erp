@@ -27,11 +27,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 專案概述
 
-AI ERP 平台，讓客戶用對話建構和查詢 ERP 系統。團隊本身是 ERP 開發公司，本產品將人工開發工作產品化。
+AI ERP 平台 — 以 AI 聊天介面取代傳統 ERP 的所有 UI（表單、選單、報表）。團隊為客戶設計 schema 並部署，客戶透過聊天完成所有 CRUD 操作 + Dashboard 看指標 + 檔案上傳批量匯入。團隊本身是 ERP 開發公司，本產品將人工開發工作產品化。
 
 ## 目前狀態
 
-**Phase 1 後端完成、前端整合中。** Laravel 13 + Sanctum 已 scaffold、42 個 Blade Component 已全數實作、Chat-to-query 後端 17 支 API 全部到位（含 SSE 串流）、Golden Test 150 筆 100% pass。
+**查詢功能後端完成、前端整合中、寫入功能待開發。** Laravel 13 + Sanctum 已 scaffold、42 個 Blade Component 已全數實作、Chat-to-query（唯讀查詢）後端 17 支 API 全部到位（含 SSE 串流）、Golden Test 150 筆 100% pass。下一步：擴展為 Chat-to-operate（加入 INSERT/UPDATE/DELETE + 確認流程 + 檔案上傳 + Dashboard）。
 
 **已建立的核心目錄：**
 - `app/Http/Controllers/Api/` — AuthController, ChatController, StreamChatController, ChatHistoryController
@@ -45,7 +45,7 @@ AI ERP 平台，讓客戶用對話建構和查詢 ERP 系統。團隊本身是 E
 - `app/Providers/RepositoryServiceProvider.php`
 - `database/migrations/tenant/` — 15 個 tenant-specific migrations（categories → schema_metadata）
 
-**尚未建立：** Phase 2 的 Build Engine、Phase 3 的 SaaS / subscription 相關模組。實作新功能前先 `Glob` 確認對應目錄是否存在。
+**尚未建立：** 寫入操作引擎（INSERT/UPDATE/DELETE + 確認流程）、Dashboard、檔案上傳模組。實作新功能前先 `Glob` 確認對應目錄是否存在。
 
 ## 常用指令
 
@@ -97,7 +97,8 @@ php artisan db:seed --class=DemoSeeder
 - **DB-per-tenant：** 每個客戶獨立 MySQL DB，主資料庫存平台運營資料
 - **API-first：** Blade 頁面透過 Axios 呼叫自己的 `/api/*` 端點
 - **Blade 元件化：** 所有 UI 用 `<x-chat.bubble>` 等巢狀命名空間的 Blade Component
-- **信心度分層：** Chat-to-query 的核心機制——高（> 95%）直接回答、中（70-95%）附提示、低（< 70%）不回答改引導釐清
+- **信心度分層（查詢）：** 高（> 95%）直接回答、中（70-95%）附提示、低（< 70%）不回答改引導釐清
+- **寫入一律確認：** 所有 INSERT/UPDATE/DELETE 操作必須顯示操作摘要，使用者確認後才執行。禁止 DDL、UPDATE/DELETE 必須帶 WHERE
 - **Golden Test Suite：** `tests/Golden/GoldenQueryEngineTest.php` + `tests/Golden/Fixtures/` 用 data-driven 方式校準 QueryEngine 準確率，`php artisan golden:run` 可跑精度測試
 
 ## 設計模式
@@ -136,11 +137,7 @@ CSS 變數體系：`--bg-page/-card/-white/-sand/-cream`, `--text-primary/-secon
 
 ### `displayName` vs `display_name`
 
-非對稱的命名 convention，依元件來源決定：
-- **Build 元件**（`<x-build.*>`、`<x-onboarding.*>` 等 UI-constructed 資料）→ **camelCase** `displayName`
-- **CRUD 元件**（`<x-crud.dynamic-*>` 吃 `schema_metadata`）→ **snake_case** `display_name`（對應 DB 欄位名）
-
-不要在元件內加 `?? $x['other']` 的 defensive fallback，保留單一 source 就好。
+非對稱的命名 convention：**camelCase** `displayName` 用於 UI-constructed 資料，**snake_case** `display_name` 用於 `schema_metadata` DB 欄位。不要在元件內加 `?? $x['other']` 的 defensive fallback。
 
 ## 文件索引
 
@@ -152,14 +149,10 @@ CSS 變數體系：`--bg-page/-card/-white/-sand/-cream`, `--text-primary/-secon
 ### 架構
 - [系統架構](docs/architecture/system-architecture.md) — 模組、資料庫、API、目錄結構
 
-### 規格書（依開發順序）
-- [00 元件庫](docs/spec/00-component-library.md) — 42 個 Blade Component 定義
-- [01 Phase 1 後端](docs/spec/01-phase1-backend.md) — Chat-to-query API
-- [02 Phase 1 前端](docs/spec/02-phase1-frontend.md) — 聊天介面頁面
-- [03 Phase 2 後端](docs/spec/03-phase2-backend.md) — Chat-to-build API
-- [04 Phase 2 前端](docs/spec/04-phase2-frontend.md) — 建構介面頁面
-- [05 Phase 3 後端](docs/spec/05-phase3-backend.md) — SaaS + 知識回饋
-- [06 Phase 3 前端](docs/spec/06-phase3-frontend.md) — 註冊、管理後台
+### 規格書
+- [00 元件庫](docs/spec/00-component-library.md) — Blade Component 定義（核心 + 待開發 + 暫不使用）
+- [01 後端](docs/spec/01-phase1-backend.md) — Chat-to-Operate API（查詢 + 寫入 + 上傳 + Dashboard）
+- [02 前端](docs/spec/02-phase1-frontend.md) — 聊天介面頁面（含確認 UI、Dashboard、檔案上傳）
 
 ## Git Submodules
 

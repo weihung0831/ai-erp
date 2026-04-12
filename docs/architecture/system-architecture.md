@@ -1,6 +1,6 @@
 # 系統架構文件：AI ERP 平台
 
-日期：2026-04-11
+日期：2026-04-12（更新）
 狀態：已核准
 依據：[設計文件](../design/ai-erp-platform.md)
 
@@ -10,7 +10,7 @@
 
 1. **客戶端** — 瀏覽器，Blade 渲染頁面結構，Alpine.js 管理前端狀態，Axios 呼叫 API 取得資料
 2. **Laravel 應用層** — 單一專案內前後端分離。API Controller（`routes/api.php`）回傳 JSON 處理業務邏輯；Web Controller（`routes/web.php`）回傳 Blade view。Service 層包含 AI Service、Tenant Manager、Domain Knowledge
-3. **AI Service Layer** — Query Engine（Phase 1）和 Build Engine（Phase 2），透過 LLM Gateway 呼叫 OpenAI GPT-4o
+3. **AI Service Layer** — Operation Engine（查詢 + 寫入），透過 LLM Gateway 呼叫 Apertis（OpenAI-compatible）gpt-4.1-mini
 4. **資料層** — 主資料庫（系統運營資料）+ 每個租戶獨立的 MySQL DB（業務資料）
 
 ## 模組說明
@@ -51,33 +51,38 @@
 
 ### 3. AI Service Layer
 
-所有 AI 相關邏輯的統一入口，下分 Query Engine 和 Build Engine。
+所有 AI 相關邏輯的統一入口。
 
-#### 3a. Query Engine（Phase 1）
+#### 3a. Operation Engine
 
-將自然語言轉換為 SQL 查詢並回傳結果。
+將自然語言轉換為 SQL 操作（查詢或寫入）並回傳結果。
 
 **流程：**
 ```
-使用者輸入 → 意圖分析 → Schema 載入 → SQL 生成 → 驗證 → 執行 → 格式化回應
+使用者輸入 → 意圖分類 → Schema 載入 → SQL 生成 → 驗證 → 執行/確認 → 格式化回應
 ```
 
 **詳細步驟：**
-1. **意圖分析：** LLM 判斷使用者要查什麼（營收？庫存？應收帳款？）
-   - 寫入類意圖（INSERT/UPDATE/DELETE）→ 拒絕，提示「目前僅支援查詢」
-   - 閒聊類 → 友善回應，引導回查詢
+1. **意圖分類：** LLM 判斷使用者要做什麼
+   - 查詢類（SELECT）→ 查詢流程
+   - 新增類（INSERT）→ 寫入流程
+   - 修改類（UPDATE）→ 寫入流程
+   - 刪除類（DELETE）→ 寫入流程
+   - 閒聊類 → 友善回應，引導回操作
    - 不明確 → 回傳釐清問題
 2. **Schema 載入：** 從租戶 DB 讀取 table/column metadata，附上中文註解
 3. **SQL 生成：** LLM 透過 function calling 產生 SQL（非 raw text）
 4. **驗證層：**
-   - 只允許 SELECT 語句
-   - 經 EXPLAIN 檢查執行計畫（拒絕掃描行數 > 100,000）
-5. **信心度評估：**
+   - 查詢類：只允許 SELECT，EXPLAIN 檢查（拒絕掃描行數 > 100,000）
+   - 寫入類：禁止 DDL（DROP/ALTER/TRUNCATE），UPDATE/DELETE 必須帶 WHERE，影響行數預估
+5. **信心度評估（僅查詢類）：**
    - 高（> 95%）→ 執行 SQL，格式化結果
    - 中（70-95%）→ 執行 SQL，格式化結果 + 附加「建議確認」提示 + SQL 預覽
    - 低（< 70%）→ **不執行 SQL**，回傳釐清問題引導使用者
-6. **執行：** 使用 read-only connection 執行 SQL
-7. **格式化：** 將結果轉為使用者友善的回應（表格、摘要數字）
+6. **執行/確認：**
+   - 查詢類 → 直接執行 SQL
+   - 寫入類 → 產生操作摘要，暫存為 pending，使用者確認後才執行
+7. **格式化：** 將結果轉為使用者友善的回應（表格、摘要數字、操作結果）
 
 **Schema Metadata 格式：**
 ```json
@@ -95,33 +100,12 @@
 }
 ```
 
-#### 3b. Build Engine（Phase 2）
-
-根據對話產生 MySQL schema、Laravel Model/Migration、CRUD UI。
-
-**流程：**
-```
-使用者描述需求 → 產業識別 → Domain Knowledge 匹配 → Schema 生成 → Migration 產生 → UI Scaffold
-```
-
-**產出物：**
-- MySQL migration 檔案
-- Laravel Eloquent Model
-- CRUD Controller + Blade 模板
-- Blade 模板（遵循 Claude DESIGN.md）
-
-**生成機制：**
-1. LLM 根據對話 + domain knowledge 產生結構化 JSON（table 定義、欄位、關聯）
-2. JSON 經 Blade template 渲染為 migration/model/controller 原始碼
-3. 檔案寫入租戶專屬目錄（`tenants/{id}/generated/`）
-4. 預覽模式：先產生預覽頁面供使用者確認，確認後才執行 `artisan migrate` 和路由註冊
-
 ### 4. LLM Gateway
 
 統一管理所有 LLM API 呼叫。
 
 **職責：**
-- 封裝 OpenAI GPT-4o API 呼叫
+- 封裝 Apertis（OpenAI-compatible）gpt-4.1-mini API 呼叫
 - 管理 system prompt（含 schema metadata 和 domain knowledge）
 - 信心度評估邏輯
 - 回應快取（Redis，需支援 tag；相同查詢 hash 比對，命中時直接回傳，不呼叫 LLM）
@@ -131,7 +115,7 @@
 **延遲控制：**
 - LLM API timeout：10 秒（超時回傳「系統忙碌，請稍後再試」）
 - SQL 執行 timeout：3 秒
-- 整體回應目標 < 5 秒（LLM ~3 秒 + SQL ~1 秒 + 格式化 ~0.5 秒）
+- 整體回應目標：首次回應（first token）< 3 秒，完整回應 < 10 秒（配合 SSE 串流）
 
 **介面抽象：**
 ```php
@@ -224,7 +208,7 @@ ai_erp_db
 
 ### 租戶資料庫（業務層）
 
-每個客戶獨立一個 DB，schema 由 Chat-to-build 或手動建立。
+每個客戶獨立一個 DB，schema 由團隊手動設計並建立。
 
 ```
 ai_erp_tenant_{id}_db
@@ -251,12 +235,14 @@ ai_erp_tenant_{id}_db
 5. 所有後續操作都在該租戶 DB 上執行
 ```
 
-注意：Phase 1 使用 Laravel Sanctum（API token），不使用 OAuth2。設計文件中的 OAuth2 + JWT 規劃為未來開放第三方整合時再導入。
+注意：目前使用 Laravel Sanctum（API token），不使用 OAuth2。OAuth2 + JWT 規劃為未來開放第三方整合時再導入。
 
-**Query Engine 額外安全層：**
-- 租戶 DB 連線使用 read-only MySQL user
-- SQL 白名單：只允許 SELECT
+**Operation Engine 安全層：**
+- 查詢操作：使用 read-only MySQL connection
+- 寫入操作：使用 read-write MySQL connection，一律需使用者確認後才執行
+- SQL 驗證：查詢只允許 SELECT；寫入禁止 DDL，UPDATE/DELETE 必須帶 WHERE
 - EXPLAIN 前置檢查：拒絕全表掃描超過閾值的查詢
+- 完整 audit trail：所有寫入操作記錄操作者、時間、SQL、影響行數
 
 ## API 設計
 
@@ -287,35 +273,33 @@ Response:
 }
 ```
 
-### Schema API（Phase 2）
+### 寫入確認 API
 
-**Step 1：預覽**
 ```
-POST /api/build
+POST /api/chat/confirm/{mutation_id}
 Authorization: Bearer {token}
-
-{ "message": "我需要管理客戶和訂單", "conversation_id": "uuid" }
 
 Response:
 {
-  "type": "build_preview",
-  "preview": { "tables": [...], "ui_preview_url": "/preview/build/uuid" },
-  "actions": ["confirm", "modify", "cancel"]
+  "reply": "已新增訂單 #1234",
+  "type": "mutation_result",
+  "success": true,
+  "affected_rows": 1
 }
 ```
 
-**Step 2：確認執行（僅 admin）**
-```
-POST /api/build/confirm
-Authorization: Bearer {token}
+### Dashboard API
 
-{ "conversation_id": "uuid" }
+```
+GET /api/dashboard
+Authorization: Bearer {token}
 
 Response:
 {
-  "type": "build_complete",
-  "created": { "tables": ["customers", "orders"], "routes": ["/customers", "/orders"] },
-  "version": "v3"
+  "stats": [
+    {"label": "本月營收", "value": "NT$1,234,567", "trend": 12.3},
+    {"label": "訂單數", "value": "156", "trend": -3.2}
+  ]
 }
 ```
 
@@ -342,14 +326,13 @@ ai-erp/
 │   ├── Http/
 │   │   ├── Controllers/
 │   │   │   ├── Api/                         # API Controller（回傳 JSON）
-│   │   │   │   ├── ChatController.php       # POST /api/chat
-│   │   │   │   ├── BuildController.php      # POST /api/build
+│   │   │   │   ├── ChatController.php       # POST /api/chat, confirm, reject
 │   │   │   │   ├── AuthController.php       # POST /api/login, /api/logout
-│   │   │   │   └── SchemaController.php     # GET /api/schema（metadata）
+│   │   │   │   ├── UploadController.php     # POST /api/upload/preview, confirm
+│   │   │   │   └── DashboardController.php  # GET /api/dashboard
 │   │   │   └── Web/                         # Web Controller（回傳 Blade view）
-│   │   │       ├── ChatPageController.php   # GET /chat
-│   │   │       ├── DashboardController.php  # GET /dashboard
-│   │   │       └── AdminController.php      # GET /admin/*
+│   │   │       ├── ChatPageController.php   # GET /chat（主頁面，含 Dashboard）
+│   │   │       └── AuthPageController.php   # GET /login, /forgot-password, /reset-password
 │   │   └── Middleware/
 │   │       └── TenantMiddleware.php
 │   ├── Models/
@@ -359,9 +342,8 @@ ai-erp/
 │   └── Services/
 │       ├── Ai/
 │       │   ├── LlmGateway.php              # Interface
-│       │   ├── OpenAiGateway.php            # GPT-4o 實作
-│       │   ├── QueryEngine.php              # 自然語言 → SQL
-│       │   ├── BuildEngine.php              # 自然語言 → Schema + UI
+│       │   ├── OpenAiGateway.php            # gpt-4.1-mini 實作
+│       │   ├── QueryEngine.php              # 自然語言 → SQL（查詢 + 寫入）
 │       │   ├── ConfidenceEstimator.php      # 信心度評估
 │       │   └── SqlValidator.php             # SQL 安全驗證
 │       ├── Tenant/
@@ -380,10 +362,6 @@ ai-erp/
 │   │   │   └── app.blade.php               # 主版面（含 Alpine.js、Axios CDN）
 │   │   ├── chat/
 │   │   │   └── index.blade.php             # 聊天頁面（Alpine.js 元件）
-│   │   ├── dashboard/
-│   │   │   └── index.blade.php             # 儀表板
-│   │   ├── admin/
-│   │   │   └── tenants.blade.php           # 租戶管理
 │   │   └── components/                      # Blade 共用元件（巢狀命名空間）
 │   │       ├── chat/                        # <x-chat.bubble> 等
 │   │       ├── data/                        # <x-data.table> 等

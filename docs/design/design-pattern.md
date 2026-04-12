@@ -1,6 +1,6 @@
 # 設計模式規範
 
-日期：2026-04-11
+日期：2026-04-12（更新）
 狀態：已核准
 依據：[架構文件](../architecture/system-architecture.md)
 
@@ -12,7 +12,7 @@
 
 本專案遵守 **SOLID 原則**，各 pattern 的設計皆以此為基礎。以下補充 SOLID 以外、需要額外留意的原則：
 
-- **YAGNI** — 只實作當前 Phase 確認的功能，不預建未來 Phase 的介面或抽象
+- **YAGNI** — 只實作當前確認的功能，不預建未來的介面或抽象
 - **KISS** — 優先使用 Laravel 內建機制（FormRequest、Middleware、Service Provider），不自己造輪子
 - **Composition over Inheritance** — Service 之間透過 constructor injection 組合，不建立繼承階層
 
@@ -78,7 +78,6 @@ app/Services/
 │   ├── LlmGateway.php             # Interface
 │   ├── OpenAiGateway.php           # 實作
 │   ├── QueryEngine.php
-│   ├── BuildEngine.php
 │   ├── ConfidenceEstimator.php
 │   └── SqlValidator.php
 ├── Tenant/
@@ -139,8 +138,7 @@ class QueryEngine
 |---------|------|
 | `LlmGatewayFactory` | 根據設定建立對應的 LLM 實例（OpenAI / Claude / 其他） |
 | `TenantDatabaseFactory` | 建立新租戶的 DB、MySQL user、初始 schema |
-| `MigrationFactory` | 根據 Schema JSON 產生 Laravel migration 檔案 |
-| `CrudScaffoldFactory` | 根據 Schema JSON 產生 Model / Controller / Blade 模板 |
+| `MigrationFactory` | 根據 Schema JSON 產生 Laravel migration 檔案（未來需要時使用） |
 
 **範例：**
 ```php
@@ -211,7 +209,7 @@ class TableFormatter implements ResponseFormatter
 |------------|------|----------|
 | `Authenticate` | Laravel Sanctum token 驗證 | `api/*`（除 login/register） |
 | `TenantMiddleware` | 解析 tenant_id，切換 DB 連線 | `api/*`（除 login/register） |
-| `AdminMiddleware` | 檢查 user role = admin | `api/admin/*`、`api/build/confirm` |
+| `AdminMiddleware` | 檢查 user role = admin | `api/admin/*` |
 
 **規則：**
 - Middleware 只做檢查和設定，不含業務邏輯
@@ -243,7 +241,7 @@ class QueryCache
 **規則：**
 - 需要支援 tag 的 cache driver（Redis 或 Memcached），不可用 file driver
 - 快取 key 包含 tenant_id，確保跨租戶隔離
-- Schema 變更（Chat-to-build）時清除該租戶的查詢快取
+- 租戶資料寫入時清除該租戶的查詢快取
 - TTL 預設 30 分鐘，可依查詢類型調整
 
 ### 7. Retry Pattern
@@ -252,9 +250,9 @@ class QueryCache
 
 **規則：**
 - 重試次數依場景決定，各 spec 自行指定：
-  - Chat-to-query（Phase 1 即時互動）：**不重試**，timeout 直接回錯，避免使用者等待
-  - Chat-to-build（Phase 2 非即時）：**重試 1 次**
-  - 租戶 DB 建立（Phase 3 背景任務）：**重試 2 次**
+  - 聊天操作（即時互動）：**不重試**，timeout 直接回錯，避免使用者等待
+  - 檔案上傳匯入（非即時）：**重試 1 次**
+  - 租戶 DB 建立（背景任務）：**重試 2 次**
 - Timeout：LLM 10 秒、SQL 3 秒
 - 所有重試都記錄到 log
 - 連續失敗不重試，直接回傳錯誤
@@ -337,10 +335,9 @@ public function handle(ChatRequest $request, QueryEngine $queryEngine): JsonResp
 
 | Event | Listener | 說明 |
 |-------|----------|------|
-| `SchemaBuilt` | `UpdateSchemaMetadataListener` | 更新 schema metadata |
-| `SchemaBuilt` | `RecordVersionListener` | 記錄 schema 版本 |
+| `MutationExecuted` | `RecordAuditTrailListener` | 記錄寫入操作 audit trail |
 | `TenantCreated` | `CreateTenantDatabaseListener` | 建立租戶 DB |
-| `PaymentFailed` | `SendPaymentReminderListener` | 發送付款提醒 |
+| `FileImported` | `NotifyImportResultListener` | 通知批量匯入結果 |
 
 **規則：**
 - 主流程中不直接做副作用（寫 log、發通知、更新統計）
@@ -360,11 +357,11 @@ API 請求和回應使用 DTO，Service 內部使用 Value Object，不直接傳
 ```
 app/Http/Requests/              # FormRequest（驗證層）
 ├── ChatFormRequest.php
-└── BuildFormRequest.php
+└── UploadFormRequest.php
 app/DTOs/                       # DTO（資料傳遞）
 ├── ChatResponseDto.php
-├── BuildPreviewDto.php
-└── SchemaDefinitionDto.php
+├── MutationResultDto.php
+└── UploadPreviewDto.php
 ```
 
 **範例：**
@@ -516,7 +513,7 @@ resources/views/components/
 |-------|----------|
 | `chatStore` | 對話歷史、目前輸入、載入狀態、conversation_id |
 | `authStore` | 登入狀態、token、使用者資訊、租戶資訊 |
-| `buildStore` | 建構對話狀態、預覽資料、確認流程 |
+| `dashboardStore` | Dashboard 指標資料、載入狀態 |
 | `sidebarStore` | 動態導覽列項目、目前選取頁面 |
 
 **範例：**
@@ -610,7 +607,7 @@ document.addEventListener('alpine:init', () => {
 | Factory | PascalCase + Factory 後綴 | `LlmGatewayFactory` |
 | Blade Component | kebab-case，點分隔命名空間 | `<x-chat.bubble>` |
 | Alpine Store | camelCase | `chatStore` |
-| API 路由 | kebab-case | `/api/chat`, `/api/build/confirm` |
+| API 路由 | kebab-case | `/api/chat`, `/api/chat/confirm/{id}` |
 | DB 欄位 | snake_case | `created_at`, `tenant_id` |
 
 ### 依賴注入規則

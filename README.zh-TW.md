@@ -1,33 +1,37 @@
 # AI ERP
 
-以 AI 驅動的 ERP 平台，讓客戶用對話建構和查詢 ERP 系統。
+以 AI 驅動的 ERP 平台，用聊天介面取代傳統 ERP 的所有 UI（表單、選單、報表）。客戶透過自然語言對話完成所有 ERP 操作。
 
 [English](README.md)
 
 ## 專案狀態
 
-**Phase 1 後端完成，前端整合中。** Laravel 13 + Sanctum 已 scaffold、42 個 Blade Component 已全數實作、Chat-to-query 後端 pipeline（LLM → SQL 生成 → 執行 → 回傳）已端到端跑通。
+**查詢功能後端完成、前端整合中、寫入功能待開發。** Laravel 13 + Sanctum 已 scaffold、42 個 Blade Component 已全數實作、Chat-to-query（唯讀查詢）後端 17 支 API 全部到位（含 SSE 串流）、Golden Test 150 筆 100% pass。
 
 已建立：
-- `Controllers/Api/` — Auth、Chat、StreamChat（SSE）、ChatHistory、QuickAction、Admin（QuickAction、SchemaField）
+- `Controllers/Api/` — Auth、Chat、StreamChat（SSE）、ChatHistory
 - `Services/` — QueryEngine、OpenAiGateway、SqlValidator、ConfidenceEstimator、TenantManager、TenantDatabaseManager
-- `Models/` — ChatHistory、Conversation、QuickAction、SchemaFieldRestriction、Tenant、User
+- `Models/` — ChatHistory、Conversation、SchemaFieldRestriction、Tenant、User
 - `Repositories/` — Contract + Eloquent 實作（Repository Pattern）
 - DB-per-tenant 含 15 個 tenant migrations + demo seeder
-- Golden accuracy test suite（150 筆案例）
+- Golden accuracy test suite（150 筆，100% pass）
 
-**尚未建立：** Phase 1 聊天 UI 頁面、Phase 2 Build Engine、Phase 3 SaaS 模組。
+下一步：擴展為 Chat-to-operate（加入 INSERT/UPDATE/DELETE + 確認流程 + 檔案上傳 + Dashboard）。
 
 ## 這是什麼？
 
-一間 ERP 開發公司的產品：客戶不再需要請開發團隊從零建 ERP，而是用自然語言描述需求，AI 自動產生資料庫 schema、API 和 UI。系統建好後，使用者用聊天查資料，取代複雜的 ERP 介面操作。
+一間 ERP 開發公司的產品：不再為每個客戶從零寫表單和 UI，團隊設計好資料庫 schema 後部署通用的 AI 聊天介面。客戶用聊天完成所有操作 — 查詢資料、新增記錄、修改資訊、刪除項目。大量資料用檔案上傳（Excel/CSV）。Dashboard 提供業務概覽。
 
-## 核心模組
+## 產品組成
 
-| 模組 | 面向 | 做什麼 |
-|------|------|--------|
-| **Chat-to-build** | 客戶 | 用對話描述需求，AI 產生 schema + UI |
-| **Chat-to-query** | 同一客戶 | 用對話查資料，取代複雜 ERP 操作 |
+| 元件 | 功能 | 取代什麼 |
+|------|------|----------|
+| **AI 聊天介面** | 自然語言完成所有 CRUD 操作 | 傳統 ERP 的表單、選單、列表 |
+| **Dashboard** | 業務關鍵指標概覽 | 傳統 ERP 的報表頁面 |
+| **檔案上傳** | 批量資料匯入（Excel/CSV） | 手動逐筆輸入 |
+| **Schema 服務** | 團隊手動為客戶設計資料庫 | 不變，這是團隊核心專業 |
+
+所有寫入操作需使用者確認後才執行，不允許靜默寫入。
 
 ## 技術棧
 
@@ -45,15 +49,9 @@
 
 - **API-first** — `Controllers/Api/` 回傳 JSON；`Controllers/Web/` 回傳 Blade view，透過 Axios 呼叫 `/api/*`
 - **DB-per-tenant** — 每個客戶獨立 MySQL DB
-- **Blade 元件化** — 所有 UI 用巢狀命名空間元件（`<x-chat.bubble>`、`<x-data.table>` 等），共 42 個元件
-
-## 開發階段
-
-| 階段 | 範圍 | 規格 |
-|------|------|------|
-| 1 | Chat-to-query：自然語言轉 SQL | [後端](docs/spec/01-phase1-backend.md) / [前端](docs/spec/02-phase1-frontend.md) |
-| 2 | Chat-to-build：對話建構 schema + CRUD UI | [後端](docs/spec/03-phase2-backend.md) / [前端](docs/spec/04-phase2-frontend.md) |
-| 3 | SaaS：自助註冊、付費、知識回饋循環 | [後端](docs/spec/05-phase3-backend.md) / [前端](docs/spec/06-phase3-frontend.md) |
+- **Blade 元件化** — 所有 UI 用巢狀命名空間元件（`<x-chat.bubble>`、`<x-data.table>` 等）
+- **信心度分層（查詢）** — 高（> 95%）直接回答、中（70-95%）附提示、低（< 70%）不回答改引導釐清
+- **寫入一律確認** — 所有 INSERT/UPDATE/DELETE 顯示操作摘要，使用者確認後才執行
 
 ## 文件
 
@@ -61,7 +59,9 @@
 - [系統架構](docs/architecture/system-architecture.md) — 模組、資料庫、API 設計
 - [設計模式](docs/design/design-pattern.md) — Repository、Service、Factory、DTO 等
 - [UI 設計規範](docs/design/ui-design-spec.md) — 元件視覺規範、dark mode、動畫
-- [元件庫](docs/spec/00-component-library.md) — 42 個 Blade Component 定義（已全部實作）
+- [元件庫](docs/spec/00-component-library.md) — Blade Component 定義
+- [後端規格](docs/spec/01-phase1-backend.md) — Chat-to-Operate API（查詢 + 寫入 + 上傳 + Dashboard）
+- [前端規格](docs/spec/02-phase1-frontend.md) — 聊天介面頁面
 
 ## 快速開始
 
@@ -70,8 +70,8 @@
 - PHP **^8.3** + Composer
 - Node.js 20+（Vite / Tailwind v4 需要）
 - MySQL 8+
-- Redis（需支援 tag，Phase 1 用於 LLM 回應快取）
-- OpenAI-compatible API key（預設：Apertis + gpt-4.1-mini，Phase 1 聊天功能需要）
+- Redis（需支援 tag，用於 LLM 回應快取）
+- OpenAI-compatible API key（預設：Apertis + gpt-4.1-mini）
 
 ### 安裝
 
@@ -120,7 +120,7 @@ php artisan golden:run --limit=10  # 快速煙霧測試
 2. [系統架構](docs/architecture/system-architecture.md) — 模組、資料庫、API
 3. [設計模式](docs/design/design-pattern.md) — **開始寫程式前必讀**
 4. [UI 設計規範](docs/design/ui-design-spec.md) — 元件視覺規範、dark mode、動畫
-5. [元件庫規格](docs/spec/00-component-library.md) — 已實作完成，作為使用元件的參考
+5. [元件庫規格](docs/spec/00-component-library.md) — 作為使用元件的參考
 
 ## 授權
 
