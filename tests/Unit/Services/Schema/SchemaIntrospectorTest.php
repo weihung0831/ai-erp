@@ -4,13 +4,23 @@ namespace Tests\Unit\Services\Schema;
 
 use App\DataTransferObjects\Schema\SchemaContext;
 use App\DataTransferObjects\Schema\TableMetadata;
+use App\Repositories\Contracts\SchemaFieldRestrictionRepositoryInterface;
 use App\Services\Schema\SchemaIntrospector;
 use Illuminate\Config\Repository;
+use Illuminate\Support\Collection;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
 final class SchemaIntrospectorTest extends TestCase
 {
+    private function emptyRestrictionRepo(): SchemaFieldRestrictionRepositoryInterface
+    {
+        $repo = $this->createMock(SchemaFieldRestrictionRepositoryInterface::class);
+        $repo->method('allOverridesForTenant')->willReturn(new Collection);
+
+        return $repo;
+    }
+
     public function test_hydrates_schema_context_from_config_fixture(): void
     {
         $introspector = new SchemaIntrospector(new Repository([
@@ -36,7 +46,7 @@ final class SchemaIntrospectorTest extends TestCase
                     ],
                 ],
             ],
-        ]));
+        ]), $this->emptyRestrictionRepo());
 
         $context = $introspector->introspect(42);
 
@@ -87,7 +97,7 @@ final class SchemaIntrospectorTest extends TestCase
                     ],
                 ],
             ],
-        ]));
+        ]), $this->emptyRestrictionRepo());
 
         $context = $introspector->introspect(1);
         $employees = $context->findTable('employees');
@@ -101,7 +111,7 @@ final class SchemaIntrospectorTest extends TestCase
     {
         $introspector = new SchemaIntrospector(new Repository([
             'schema_fixtures' => ['tenants' => [1 => ['tables' => []]]],
-        ]));
+        ]), $this->emptyRestrictionRepo());
 
         $context = $introspector->introspect(1);
 
@@ -113,7 +123,7 @@ final class SchemaIntrospectorTest extends TestCase
     {
         $introspector = new SchemaIntrospector(new Repository([
             'schema_fixtures' => ['tenants' => []],
-        ]));
+        ]), $this->emptyRestrictionRepo());
 
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessageMatches('/找不到租戶 99 的 schema fixture/');
@@ -130,7 +140,7 @@ final class SchemaIntrospectorTest extends TestCase
             'schema_fixtures' => require __DIR__.'/../../../../config/schema_fixtures.php',
         ]);
 
-        $context = (new SchemaIntrospector($config))->introspect(1);
+        $context = (new SchemaIntrospector($config, $this->emptyRestrictionRepo()))->introspect(1);
 
         $this->assertSame('餐飲業', $context->domainContext);
         $this->assertContains('orders', $context->tableNames());

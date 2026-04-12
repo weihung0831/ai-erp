@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\Admin\QuickActionController as AdminQuickActionController;
+use App\Http\Controllers\Api\Admin\SchemaFieldController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ChatController;
 use App\Http\Controllers\Api\ChatHistoryController;
@@ -26,6 +27,9 @@ Route::middleware('auth:sanctum')->group(function (): void {
             Route::get('/quick-actions', [AdminQuickActionController::class, 'index'])->name('api.admin.quick-actions.index');
             Route::post('/quick-actions', [AdminQuickActionController::class, 'store'])->name('api.admin.quick-actions.store');
             Route::delete('/quick-actions/{id}', [AdminQuickActionController::class, 'destroy'])->name('api.admin.quick-actions.destroy');
+
+            Route::get('/schema-fields', [SchemaFieldController::class, 'index'])->name('api.admin.schema-fields.index');
+            Route::patch('/schema-fields/{table}/{column}', [SchemaFieldController::class, 'update'])->name('api.admin.schema-fields.update');
         });
     });
 });

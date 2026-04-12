@@ -29,8 +29,9 @@ use Throwable;
  * - execute_query        → handleScalarQuery()  → ChatResponseType::Numeric
  * - execute_query_table  → handleTableQuery()   → ChatResponseType::Table
  *
- * 未支援（對應 US）：
- * - 敏感欄位（US-7）
+ * 敏感欄位保護（US-7）：
+ * - 第一層：system prompt 不包含 restricted 欄位，LLM 不知道它們存在
+ * - 第二層：SQL 產生後檢查是否引用 restricted 欄位名，是則拒絕執行
  *
  * 錯誤處理原則：任何內部例外（LLM、validator、executor）都 catch 並轉為
  * ChatQueryResult(type=Error)，不讓例外往上傳給 controller，讓 HTTP 層保持 thin。
@@ -90,6 +91,14 @@ final class QueryEngine
                 tokensUsed: $response->tokensUsed,
                 confidenceLevel: ConfidenceLevel::Low,
             );
+        }
+
+        // US-7 第二層防護：即使 prompt 已過濾 restricted 欄位，仍檢查 LLM 產出的 SQL
+        $sql = (string) ($response->functionArguments['sql'] ?? '');
+        if ($sql !== '' && $this->sqlReferencesRestrictedColumn($sql, $schema)) {
+            $this->logger->warning('QueryEngine: SQL references restricted column', ['sql' => $sql]);
+
+            return $this->errorResult('此資料受限，無法查詢');
         }
 
         return match ($response->functionName) {
@@ -379,6 +388,9 @@ final class QueryEngine
         $lines = ["{$table->name}（{$table->displayName}）"];
 
         foreach ($table->columns as $column) {
+            if ($column->restricted) {
+                continue;
+            }
             $line = "- {$column->name} ({$column->type}): {$column->displayName}";
             if ($column->description !== null) {
                 $line .= " — {$column->description}";
@@ -458,6 +470,30 @@ final class QueryEngine
                 ],
             ],
         ];
+    }
+
+    /**
+     * 檢查 SQL 是否引用了任何 restricted 欄位。用 word boundary regex 比對，
+     * 避免子字串誤判（例：`restricted_col` 不應命中 `col`）。
+     */
+    private function sqlReferencesRestrictedColumn(string $sql, SchemaContext $schema): bool
+    {
+        $restrictedNames = [];
+        foreach ($schema->tables as $table) {
+            foreach ($table->columns as $column) {
+                if ($column->restricted) {
+                    $restrictedNames[] = preg_quote($column->name, '/');
+                }
+            }
+        }
+
+        if ($restrictedNames === []) {
+            return false;
+        }
+
+        $pattern = '/\b('.implode('|', $restrictedNames).')\b/i';
+
+        return preg_match($pattern, $sql) === 1;
     }
 
     private function errorResult(string $reply): ChatQueryResult

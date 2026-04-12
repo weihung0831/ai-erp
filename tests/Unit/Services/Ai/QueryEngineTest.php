@@ -5,12 +5,14 @@ namespace Tests\Unit\Services\Ai;
 use App\DataTransferObjects\Chat\ChatQueryInput;
 use App\Enums\ChatResponseType;
 use App\Enums\ConfidenceLevel;
+use App\Repositories\Contracts\SchemaFieldRestrictionRepositoryInterface;
 use App\Services\Ai\ConfidenceEstimator;
 use App\Services\Ai\LlmResponse;
 use App\Services\Ai\QueryEngine;
 use App\Services\Ai\SqlValidator;
 use App\Services\Schema\SchemaIntrospector;
 use Illuminate\Config\Repository;
+use Illuminate\Support\Collection;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 use RuntimeException;
@@ -24,6 +26,14 @@ final class QueryEngineTest extends TestCase
     private FakeTenantQueryExecutor $executor;
 
     private QueryEngine $engine;
+
+    private function emptyRestrictionRepo(): SchemaFieldRestrictionRepositoryInterface
+    {
+        $repo = $this->createMock(SchemaFieldRestrictionRepositoryInterface::class);
+        $repo->method('allOverridesForTenant')->willReturn(new Collection);
+
+        return $repo;
+    }
 
     protected function setUp(): void
     {
@@ -518,6 +528,72 @@ final class QueryEngineTest extends TestCase
         $this->assertContains('reply_template', $functionsByName['execute_query_table']['parameters']['required']);
     }
 
+    // ── US-7：restricted column protection ──
+
+    public function test_restricted_column_excluded_from_system_prompt(): void
+    {
+        $engine = $this->makeEngineWithRestrictedColumns();
+
+        $this->llm->queueResponse(new LlmResponse(
+            functionName: null,
+            functionArguments: [],
+            content: '...',
+            tokensUsed: 0,
+        ));
+
+        $engine->handle(new ChatQueryInput(message: '隨便問', tenantId: 1));
+
+        $systemMessage = $this->llm->calls[0]['messages'][0]['content'];
+        $this->assertStringNotContainsString('salary', $systemMessage);
+        $this->assertStringContainsString('name', $systemMessage);
+        $this->assertStringContainsString('total_amount', $systemMessage);
+    }
+
+    public function test_sql_referencing_restricted_column_returns_error(): void
+    {
+        $engine = $this->makeEngineWithRestrictedColumns();
+
+        $this->llm->queueResponse(new LlmResponse(
+            functionName: 'execute_query',
+            functionArguments: [
+                'sql' => 'SELECT AVG(salary) FROM employees',
+                'reply_template' => '平均薪資為 {value}',
+                'value_format' => 'currency',
+                'confidence' => 0.97,
+            ],
+            content: null,
+            tokensUsed: 100,
+        ));
+
+        $result = $engine->handle(new ChatQueryInput(message: '平均薪資多少', tenantId: 1));
+
+        $this->assertSame(ChatResponseType::Error, $result->type);
+        $this->assertSame('此資料受限，無法查詢', $result->reply);
+    }
+
+    public function test_sql_not_referencing_restricted_column_proceeds_normally(): void
+    {
+        $engine = $this->makeEngineWithRestrictedColumns();
+
+        $this->llm->queueResponse(new LlmResponse(
+            functionName: 'execute_query',
+            functionArguments: [
+                'sql' => 'SELECT COUNT(*) FROM employees',
+                'reply_template' => '共有 {value} 位員工',
+                'value_format' => 'count',
+                'confidence' => 0.97,
+            ],
+            content: null,
+            tokensUsed: 100,
+        ));
+
+        $this->executor->queueResult([['COUNT(*)' => 42]]);
+
+        $result = $engine->handle(new ChatQueryInput(message: '有多少員工', tenantId: 1));
+
+        $this->assertSame(ChatResponseType::Numeric, $result->type);
+    }
+
     private function makeEngine(FakeLlmGateway $llm, FakeTenantQueryExecutor $executor): QueryEngine
     {
         $config = new Repository([
@@ -551,9 +627,50 @@ final class QueryEngineTest extends TestCase
 
         return new QueryEngine(
             llm: $llm,
-            introspector: new SchemaIntrospector($config),
+            introspector: new SchemaIntrospector($config, $this->emptyRestrictionRepo()),
             validator: new SqlValidator,
             executor: $executor,
+            confidenceEstimator: new ConfidenceEstimator,
+            logger: new NullLogger,
+        );
+    }
+
+    private function makeEngineWithRestrictedColumns(): QueryEngine
+    {
+        $config = new Repository([
+            'schema_fixtures' => [
+                'tenants' => [
+                    1 => [
+                        'domain_context' => '製造業',
+                        'tables' => [
+                            [
+                                'name' => 'employees',
+                                'display_name' => '員工',
+                                'columns' => [
+                                    ['name' => 'id', 'type' => 'int', 'display_name' => '員工編號'],
+                                    ['name' => 'name', 'type' => 'varchar', 'display_name' => '姓名'],
+                                    ['name' => 'salary', 'type' => 'decimal', 'display_name' => '薪資', 'restricted' => true],
+                                ],
+                            ],
+                            [
+                                'name' => 'orders',
+                                'display_name' => '訂單',
+                                'columns' => [
+                                    ['name' => 'id', 'type' => 'int', 'display_name' => '訂單編號'],
+                                    ['name' => 'total_amount', 'type' => 'decimal', 'display_name' => '訂單金額'],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+
+        return new QueryEngine(
+            llm: $this->llm,
+            introspector: new SchemaIntrospector($config, $this->emptyRestrictionRepo()),
+            validator: new SqlValidator,
+            executor: $this->executor,
             confidenceEstimator: new ConfidenceEstimator,
             logger: new NullLogger,
         );
