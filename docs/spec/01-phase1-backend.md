@@ -14,6 +14,7 @@
 - [x] US-6：認證登入
 - [x] US-7：敏感欄位保護
 - [x] US-8：查詢日誌
+- [x] US-9：對話管理
 - [x] Golden Test Suite 建立（100 筆關鍵財務 + 50 筆一般查詢）
 - [x] 準確率達標（關鍵財務 > 99%，一般 > 95%）
 
@@ -113,6 +114,16 @@
 - 管理員頁面列出所有查詢紀錄（時間、使用者、問題、回應、信心度）
 - 可按日期和使用者篩選
 - 可標記查詢結果為「正確」或「錯誤」（供準確率追蹤）
+
+### US-9：對話管理
+
+> 身為 ERP 使用者，我可以查看歷史對話清單、切換回舊對話繼續聊，以及刪除不需要的對話。
+
+**驗收條件：**
+- 側邊欄顯示歷史對話清單，按最後活動時間倒序
+- 點擊歷史對話可載入完整對話內容，接續對話
+- 可刪除單一對話，級聯清除相關聊天紀錄（query_logs 的 FK 設為 null）
+- 取得目前登入使用者資訊（`GET /api/user`），供前端顯示使用者名稱
 
 ## 聊天介面規格
 
@@ -298,12 +309,15 @@ Phase 1 由團隊手動為目標客戶的現有 DB 建立 schema metadata：
 |--------|------|------|
 | `POST` | `/api/login` | 登入，回傳 Sanctum token |
 | `POST` | `/api/logout` | 登出，撤銷 token |
+| `GET` | `/api/user` | 取得目前登入使用者資訊 |
 | `POST` | `/api/token/refresh` | 延長閒置中的 token 有效期（前端閒置警告確認「繼續使用」時呼叫） |
 | `POST` | `/api/forgot-password` | 寄送密碼重設 email |
 | `POST` | `/api/reset-password` | 重設密碼 |
 | `POST` | `/api/chat` | 送出聊天訊息，回傳 AI 回應 |
 | `POST` | `/api/chat/stream` | 串流聊天回應（SSE） |
 | `GET` | `/api/chat/history` | 取得對話歷史清單 |
+| `GET` | `/api/chat/history/{uuid}` | 取得單一對話的所有 messages |
+| `DELETE` | `/api/chat/history/{uuid}` | 刪除對話（cascade 清 chat_histories，query_logs FK 設為 null） |
 | `GET` | `/api/admin/query-logs` | 查詢日誌列表（admin） |
 | `PATCH` | `/api/admin/query-logs/{id}` | 標記查詢正確/錯誤（admin） |
 | `GET` | `/api/admin/schema-fields` | 取得欄位列表（admin） |

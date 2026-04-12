@@ -82,4 +82,9 @@ class ChatHistoryRepository implements ChatHistoryRepositoryInterface
             ->orderBy('created_at')
             ->get();
     }
+
+    public function deleteConversation(Conversation $conversation): void
+    {
+        $conversation->delete();
+    }
 }

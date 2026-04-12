@@ -24,6 +24,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::post('/chat/stream', [StreamChatController::class, 'handle'])->name('api.chat.stream');
         Route::get('/chat/history', [ChatHistoryController::class, 'index'])->name('api.chat.history');
         Route::get('/chat/history/{conversationUuid}', [ChatHistoryController::class, 'show'])->name('api.chat.history.show');
+        Route::delete('/chat/history/{conversationUuid}', [ChatHistoryController::class, 'destroy'])->name('api.chat.history.destroy');
         Route::get('/quick-actions', [QuickActionController::class, 'index'])->name('api.quick-actions');
 
         Route::middleware('admin')->prefix('admin')->group(function (): void {

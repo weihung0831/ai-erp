@@ -44,4 +44,9 @@ interface ChatHistoryRepositoryInterface
      * @return Collection<int, ChatHistory>
      */
     public function findMessages(Conversation $conversation): Collection;
+
+    /**
+     * 刪除指定對話及其所有 turns（cascade）。
+     */
+    public function deleteConversation(Conversation $conversation): void;
 }

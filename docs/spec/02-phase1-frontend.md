@@ -7,24 +7,24 @@
 ## 進度追蹤
 
 ### 頁面
-- [ ] 登入頁
-- [ ] 忘記密碼頁
-- [ ] 重設密碼頁
-- [ ] 聊天頁（主頁面）
+- [x] 登入頁
+- [x] 忘記密碼頁
+- [x] 重設密碼頁
+- [x] 聊天頁（主頁面）
 - [ ] 查詢日誌頁（admin）
 - [ ] 快捷按鈕管理頁（admin）
 - [ ] 敏感欄位管理頁（admin）
 
 ### 元件（使用中）
-- [ ] `<x-layout.page>` / `<x-layout.sidebar>` / `<x-layout.header>`
-- [ ] `<x-chat.bubble>` / `<x-chat.input>` / `<x-chat.quick-actions>` / `<x-chat.confidence>` / `<x-chat.typing>` / `<x-chat.result-table>` / `<x-chat.result-number>`
+- [x] `<x-layout.page>` / `<x-layout.sidebar>` / `<x-layout.header>`
+- [x] `<x-chat.bubble>` / `<x-chat.input>` / `<x-chat.quick-actions>` / `<x-chat.confidence>` / `<x-chat.typing>` / `<x-chat.result-table>` / `<x-chat.result-number>`
 - [ ] `<x-data.table>` / `<x-data.pagination>` / `<x-data.empty-state>`
-- [ ] `<x-form.input>`
-- [ ] `<x-ui.button>` / `<x-ui.alert>` / `<x-ui.modal>` / `<x-ui.dropdown>` / `<x-ui.loading>` / `<x-ui.toast>` / `<x-ui.tooltip>`
+- [x] `<x-form.input>`
+- [x] `<x-ui.button>` / `<x-ui.alert>` / `<x-ui.modal>` / `<x-ui.dropdown>` / `<x-ui.loading>` / `<x-ui.toast>` / `<x-ui.tooltip>`
 
 ### Alpine.js Store
-- [ ] `chatStore`
-- [ ] `authStore`
+- [x] `chatStore`
+- [x] `authStore`
 
 ## 頁面清單
 
@@ -97,8 +97,10 @@ x-data="{
 
 **串接 API：**
 - `POST /api/chat` → 送出訊息，取得 AI 回應
-- `GET /api/chat/history?conversation_id=xxx` → 載入歷史對話
-- `GET /api/quick-actions` → 載入快捷按鈕清單，渲染 `<x-chat.quick-actions>`
+- `GET /api/chat/history` → 載入對話清單（sidebar）
+- `GET /api/chat/history/{uuid}` → 載入單一對話的所有 messages
+- `DELETE /api/chat/history/{uuid}` → 刪除對話
+- `GET /api/quick-actions` → 載入快捷按鈕清單
 
 **互動細節：**
 - Enter 送出，Shift+Enter 換行
@@ -110,7 +112,9 @@ x-data="{
   - `summary` → 純文字氣泡
   - `clarify` → 氣泡 + 選項按鈕
 - 中信心回應顯示 `<x-chat.confidence>` + SQL 展開按鈕
+- 側邊欄可收合/展開（`«`/`»` 按鈕），狀態存 localStorage
 - 側邊欄顯示「新對話」按鈕和歷史對話清單
+- 對話項目 hover 時顯示 `×` 刪除按鈕，點擊刪除該對話
 - Header 右上角使用者 dropdown 包含「登出」按鈕，點擊後呼叫 `POST /api/logout` 撤銷 server token，再清除 localStorage token 並跳轉登入頁
 
 ### 3. 查詢日誌頁（admin）

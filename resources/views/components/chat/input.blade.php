@@ -18,7 +18,7 @@
 >
     <textarea
         x-model="value"
-        @keydown.enter="if (!$event.shiftKey) { $event.preventDefault(); submit(); }"
+        @keydown.enter="if (!$event.shiftKey && !$event.isComposing) { $event.preventDefault(); submit(); }"
         placeholder="{{ $placeholder }}"
         rows="1"
         @disabled($disabled)

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Conversation;
 use App\Repositories\Contracts\ChatHistoryRepositoryInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -12,6 +13,7 @@ use Illuminate\Http\Request;
  *
  * GET /api/chat/history           — 對話清單
  * GET /api/chat/history/{uuid}    — 單一對話的所有 messages
+ * DELETE /api/chat/history/{uuid} — 刪除對話
  */
 class ChatHistoryController extends Controller
 {
@@ -35,12 +37,10 @@ class ChatHistoryController extends Controller
         Request $request,
         ChatHistoryRepositoryInterface $chatHistory,
     ): JsonResponse {
-        $user = $request->user();
+        $conversation = $this->resolveConversation($conversationUuid, $request, $chatHistory);
 
-        $conversation = $chatHistory->findConversationByUuid($conversationUuid, $user->id, $user->tenant_id);
-
-        if ($conversation === null) {
-            return response()->json(['message' => '對話不存在或無權存取'], 403);
+        if ($conversation instanceof JsonResponse) {
+            return $conversation;
         }
 
         $messages = $chatHistory->findMessages($conversation)
@@ -54,5 +54,36 @@ class ChatHistoryController extends Controller
             ]);
 
         return response()->json(['data' => $messages]);
+    }
+
+    public function destroy(
+        string $conversationUuid,
+        Request $request,
+        ChatHistoryRepositoryInterface $chatHistory,
+    ): JsonResponse {
+        $conversation = $this->resolveConversation($conversationUuid, $request, $chatHistory);
+
+        if ($conversation instanceof JsonResponse) {
+            return $conversation;
+        }
+
+        $chatHistory->deleteConversation($conversation);
+
+        return response()->json(['message' => '對話已刪除']);
+    }
+
+    private function resolveConversation(
+        string $uuid,
+        Request $request,
+        ChatHistoryRepositoryInterface $chatHistory,
+    ): Conversation|JsonResponse {
+        $user = $request->user();
+        $conversation = $chatHistory->findConversationByUuid($uuid, $user->id, $user->tenant_id);
+
+        if ($conversation === null) {
+            return response()->json(['message' => '對話不存在或無權存取'], 403);
+        }
+
+        return $conversation;
     }
 }
