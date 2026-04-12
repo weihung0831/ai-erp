@@ -7,7 +7,6 @@
     <span class="company">{{ $company }}</span>
 
     <div class="row-sm items-center">
-        <x-ui.theme-toggle variant="labeled" />
         @isset($actions)
             {{ $actions }}
         @endisset

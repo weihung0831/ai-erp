@@ -64,7 +64,7 @@
 
         @foreach ($datasets as $ds)
             @php
-                $color = $ds['color'] ?? '#c96442';
+                $color = $ds['color'] ?? '#1ed760';
                 $data = $ds['data'] ?? [];
                 $ys = array_map($scaleY, $data);
             @endphp
@@ -110,7 +110,7 @@
     <div class="row-sm trend-chart-legend">
         @foreach ($datasets as $ds)
             <div class="row-sm items-center trend-chart-legend-item">
-                <span class="trend-chart-swatch" style="background: {{ $ds['color'] ?? '#c96442' }};"></span>
+                <span class="trend-chart-swatch" style="background: {{ $ds['color'] ?? '#1ed760' }};"></span>
                 <span class="text-[12px] text-[var(--text-secondary)]">{{ $ds['label'] ?? '—' }}</span>
             </div>
         @endforeach

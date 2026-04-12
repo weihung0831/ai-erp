@@ -5,6 +5,7 @@ export default {
     loading: false,
     conversationId: null,
     async init() {
+        if (!localStorage.getItem('token')) return;
         await this.fetchConversations();
     },
 

@@ -1,6 +1,25 @@
 <x-layouts.app title="聊天查詢">
 <div class="flex h-screen"
-     x-data="{ sidebarOpen: localStorage.getItem('sidebarOpen') !== 'false' }"
+     x-data="{
+        sidebarOpen: localStorage.getItem('sidebarOpen') !== 'false',
+        showLogoutModal: false,
+        loggingOut: false,
+        async confirmLogout() {
+            this.showLogoutModal = false;
+            this.loggingOut = true;
+            const minDelay = new Promise(r => setTimeout(r, 2000));
+            try {
+                await Promise.all([
+                    window.axios.post('/api/logout'),
+                    minDelay,
+                ]);
+            } catch {
+                await minDelay;
+            }
+            $store.auth.clearToken();
+            window.location.href = '/login';
+        },
+     }"
      x-init="
         if (!$store.auth.loggedIn) { window.location.href = '/login'; return; }
         $store.auth.fetchUser();
@@ -49,11 +68,13 @@
 
             {{-- User menu --}}
             <div class="sidebar-footer" x-data="{ open: false }" @click.outside="open = false">
-                <button type="button" class="sidebar-user-btn" @click="open = !open">
-                    <span x-text="$store.auth.user?.name || '使用者'"></span> ▾
+                <button type="button" class="sidebar-user-pill" @click="open = !open">
+                    <span class="sidebar-user-avatar" x-text="($store.auth.user?.name || '使')[0]"></span>
+                    <span class="sidebar-user-name" x-text="$store.auth.user?.name || '使用者'"></span>
+                    <svg class="sidebar-user-arrow" :class="{ 'is-open': open }" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
                 </button>
                 <div class="sidebar-user-menu" x-show="open" x-transition x-cloak>
-                    <a href="#" class="dropdown-item" @click.prevent="$store.auth.logout()">登出</a>
+                    <a href="#" class="dropdown-item" @click.prevent="open = false; showLogoutModal = true">登出</a>
                 </div>
             </div>
         </div>
@@ -204,5 +225,15 @@
             </div>
         </div>
     </div>
+    {{-- 登出確認 Modal --}}
+    <x-ui.modal title="確認登出" show="showLogoutModal" maxWidth="sm">
+        <p class="text-[var(--text-secondary)]">確定要登出 AI ERP 平台嗎？</p>
+        <x-slot:footer>
+            <button class="btn btn-secondary btn-sm" @click="showLogoutModal = false">取消</button>
+            <button class="btn btn-danger btn-sm" @click="confirmLogout()">登出</button>
+        </x-slot:footer>
+    </x-ui.modal>
+
+    <x-ui.splash show="loggingOut" subtitle="正在登出" />
 </div>
 </x-layouts.app>

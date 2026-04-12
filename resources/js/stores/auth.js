@@ -27,13 +27,4 @@ export default {
         }
     },
 
-    async logout() {
-        try {
-            await window.axios.post('/api/logout');
-        } catch {
-            // token 可能已失效，忽略錯誤
-        }
-        this.clearToken();
-        window.location.href = '/login';
-    },
 };

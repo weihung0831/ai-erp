@@ -6,7 +6,7 @@ AI-powered ERP platform that replaces traditional ERP interfaces (forms, menus, 
 
 ## Status
 
-**Query backend complete; frontend integration in progress; write operations next.** Laravel 13 + Sanctum scaffolded, 42 Blade components implemented, Chat-to-query (read-only) backend with 17 APIs working end-to-end (including SSE streaming), Golden Test Suite at 150 cases with 100% pass rate.
+**Query backend complete; frontend integration in progress; write operations next.** Laravel 13 + Sanctum scaffolded, 48 Blade components implemented, Chat-to-query (read-only) backend with 17 APIs working end-to-end (including SSE streaming), Golden Test Suite at 150 cases with 100% pass rate.
 
 What's built:
 - `Controllers/Api/` — Auth, Chat, StreamChat (SSE), ChatHistory
@@ -41,7 +41,7 @@ All write operations require user confirmation before execution. No silent write
 | Database | MySQL (DB-per-tenant isolation) |
 | AI | Apertis (OpenAI-compatible) + gpt-4.1-mini + function calling |
 | Frontend | Blade + Alpine.js + Axios |
-| UI Design | [Claude DESIGN.md](DESIGN.md) |
+| UI Design | [Spotify DESIGN.md](DESIGN.md) (dark-only) |
 | Auth | Laravel Sanctum (API token) |
 | Cache | Redis (tag-aware, for LLM response caching) |
 
@@ -58,7 +58,7 @@ All write operations require user confirmation before execution. No silent write
 - [Design Document](docs/design/ai-erp-platform.md) — Product design (approved)
 - [System Architecture](docs/architecture/system-architecture.md) — Modules, database, API design
 - [Design Patterns](docs/design/design-pattern.md) — Repository, Service, Factory, DTO, etc.
-- [UI Design Spec](docs/design/ui-design-spec.md) — Component visual specs, dark mode, animations
+- [UI Design Spec](docs/design/ui-design-spec.md) — Component visual specs (Spotify dark-only), animations
 - [Component Library](docs/spec/00-component-library.md) — Blade Component definitions
 - [Backend Spec](docs/spec/01-phase1-backend.md) — Chat-to-Operate API (query + write + upload + dashboard)
 - [Frontend Spec](docs/spec/02-phase1-frontend.md) — Chat interface pages
@@ -85,7 +85,7 @@ npm install
 cp .env.example .env
 php artisan key:generate
 php artisan migrate
-php artisan db:seed --class=DemoSeeder   # provision demo tenant + sample data
+php artisan db:seed --class=DemoSeeder   # demo account: admin@example.com / admin@example.com
 npm run build
 ```
 
@@ -119,7 +119,7 @@ Before writing any code, read these in order:
 1. [Design Document](docs/design/ai-erp-platform.md) — what we're building and why
 2. [System Architecture](docs/architecture/system-architecture.md) — modules, database, API
 3. [Design Patterns](docs/design/design-pattern.md) — **required reading before writing any code**
-4. [UI Design Spec](docs/design/ui-design-spec.md) — component visual specs, dark mode, animations
+4. [UI Design Spec](docs/design/ui-design-spec.md) — component visual specs (Spotify dark-only), animations
 5. [Component Library Spec](docs/spec/00-component-library.md) — reference for which component to use
 
 ## License

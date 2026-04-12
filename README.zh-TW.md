@@ -6,7 +6,7 @@
 
 ## 專案狀態
 
-**查詢功能後端完成、前端整合中、寫入功能待開發。** Laravel 13 + Sanctum 已 scaffold、42 個 Blade Component 已全數實作、Chat-to-query（唯讀查詢）後端 17 支 API 全部到位（含 SSE 串流）、Golden Test 150 筆 100% pass。
+**查詢功能後端完成、前端整合中、寫入功能待開發。** Laravel 13 + Sanctum 已 scaffold、48 個 Blade Component 已全數實作、Chat-to-query（唯讀查詢）後端 17 支 API 全部到位（含 SSE 串流）、Golden Test 150 筆 100% pass。
 
 已建立：
 - `Controllers/Api/` — Auth、Chat、StreamChat（SSE）、ChatHistory
@@ -41,7 +41,7 @@
 | Database | MySQL（DB-per-tenant 多租戶隔離） |
 | AI | Apertis（OpenAI-compatible）+ gpt-4.1-mini + function calling |
 | Frontend | Blade + Alpine.js + Axios |
-| UI 設計 | [Claude DESIGN.md](DESIGN.md) |
+| UI 設計 | [Spotify DESIGN.md](DESIGN.md)（深色唯一模式） |
 | Auth | Laravel Sanctum（API token） |
 | Cache | Redis（需支援 tag，用於 LLM 回應快取） |
 
@@ -58,7 +58,7 @@
 - [設計文件](docs/design/ai-erp-platform.md) — 產品設計（已核准）
 - [系統架構](docs/architecture/system-architecture.md) — 模組、資料庫、API 設計
 - [設計模式](docs/design/design-pattern.md) — Repository、Service、Factory、DTO 等
-- [UI 設計規範](docs/design/ui-design-spec.md) — 元件視覺規範、dark mode、動畫
+- [UI 設計規範](docs/design/ui-design-spec.md) — 元件視覺規範（Spotify 深色唯一模式）、動畫
 - [元件庫](docs/spec/00-component-library.md) — Blade Component 定義
 - [後端規格](docs/spec/01-phase1-backend.md) — Chat-to-Operate API（查詢 + 寫入 + 上傳 + Dashboard）
 - [前端規格](docs/spec/02-phase1-frontend.md) — 聊天介面頁面
@@ -85,7 +85,7 @@ npm install
 cp .env.example .env
 php artisan key:generate
 php artisan migrate
-php artisan db:seed --class=DemoSeeder   # 建立示範租戶 + 範例資料
+php artisan db:seed --class=DemoSeeder   # 帳號密碼：admin@example.com / admin@example.com
 npm run build
 ```
 
@@ -119,7 +119,7 @@ php artisan golden:run --limit=10  # 快速煙霧測試
 1. [設計文件](docs/design/ai-erp-platform.md) — 做什麼、為什麼做
 2. [系統架構](docs/architecture/system-architecture.md) — 模組、資料庫、API
 3. [設計模式](docs/design/design-pattern.md) — **開始寫程式前必讀**
-4. [UI 設計規範](docs/design/ui-design-spec.md) — 元件視覺規範、dark mode、動畫
+4. [UI 設計規範](docs/design/ui-design-spec.md) — 元件視覺規範（Spotify 深色唯一模式）、動畫
 5. [元件庫規格](docs/spec/00-component-library.md) — 作為使用元件的參考
 
 ## 授權

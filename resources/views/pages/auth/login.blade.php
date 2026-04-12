@@ -7,20 +7,26 @@
         async login() {
             this.error = null;
             this.loading = true;
+            const minDelay = new Promise(r => setTimeout(r, 2000));
             try {
-                const res = await window.axios.post('/api/login', {
-                    email: this.email,
-                    password: this.password,
-                });
+                const [res] = await Promise.all([
+                    window.axios.post('/api/login', {
+                        email: this.email,
+                        password: this.password,
+                    }),
+                    minDelay,
+                ]);
                 $store.auth.setToken(res.data.token);
                 window.location.href = '/chat';
             } catch (e) {
+                await minDelay;
                 this.error = e.response?.data?.message || '登入失敗，請稍後再試';
-            } finally {
                 this.loading = false;
             }
         }
     }">
+        <x-ui.splash show="loading" subtitle="系統載入中" />
+
         <div class="login-card card">
             <div class="login-header stack-sm">
                 <h1 class="h-card">AI ERP 平台</h1>
@@ -58,8 +64,7 @@
                     class="login-submit"
                     ::disabled="loading || !email || !password"
                 >
-                    <span x-show="!loading">登入</span>
-                    <span x-show="loading" x-cloak>登入中…</span>
+                    登入
                 </x-ui.button>
             </form>
 

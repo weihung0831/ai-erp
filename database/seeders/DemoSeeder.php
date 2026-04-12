@@ -30,18 +30,18 @@ class DemoSeeder extends Seeder
         );
 
         User::updateOrCreate(
-            ['email' => 'demo@example.com'],
+            ['email' => 'admin@example.com'],
             [
                 'tenant_id' => $tenant->id,
-                'name' => '示範使用者',
-                'password' => Hash::make('password'),
+                'name' => 'Admin',
+                'password' => Hash::make('admin@example.com'),
                 'role' => UserRole::Admin,
             ],
         );
 
         $this->command?->info('示範資料種入完成：');
         $this->command?->info("  租戶：{$tenant->name} (id={$tenant->id})");
-        $this->command?->info('  使用者：demo@example.com / password');
+        $this->command?->info('  使用者：admin@example.com / admin@example.com');
         $this->command?->info('  接下來跑 php artisan tenant:provision 1 --fresh --seed 佈建租戶 DB');
     }
 }

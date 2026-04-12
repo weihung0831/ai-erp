@@ -14,7 +14,9 @@ axios.interceptors.response.use(
     error => {
         if (error.response?.status === 401) {
             localStorage.removeItem('token');
-            if (window.location.pathname !== '/login') {
+            const authPages = ['/login', '/forgot-password', '/reset-password'];
+            const isAuthPage = authPages.some(p => window.location.pathname.startsWith(p));
+            if (!isAuthPage) {
                 window.location.href = '/login';
             }
         }
