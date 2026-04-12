@@ -682,6 +682,27 @@ code, pre {
 .sidebar-conv-item:hover .sidebar-conv-delete { opacity: 1; }
 .sidebar-conv-delete:hover { color: var(--error); }
 
+/* === Chat scroll-to-top ================================================== */
+.chat-scroll-top {
+    position: absolute;
+    bottom: 100px;
+    right: 24px;
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    box-shadow: var(--ring-default), 0 2px 8px rgba(20, 20, 19, 0.1);
+    border: none;
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    z-index: 10;
+    transition: background 150ms ease, color 150ms ease;
+}
+.chat-scroll-top:hover {
+    background: var(--bg-cream);
+    color: var(--text-primary);
+}
+
 /* === Header ============================================================== */
 .app-header {
     height: 56px;

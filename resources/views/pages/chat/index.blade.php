@@ -71,9 +71,10 @@
         </header>
 
         {{-- Chat area --}}
-        <div class="flex-1 flex flex-col overflow-hidden">
+        <div class="flex-1 flex flex-col overflow-hidden relative" x-data="{ showScrollTop: false }">
             {{-- Messages --}}
-            <div id="chat-messages" class="flex-1 overflow-y-auto p-6 stack-md">
+            <div id="chat-messages" class="flex-1 overflow-y-auto p-6 stack-md"
+                 @scroll="showScrollTop = $el.scrollTop > 300">
                 {{-- Welcome message --}}
                 <template x-if="$store.chat.messages.length === 0 && !$store.chat.loading">
                     <div class="flex justify-start">
@@ -183,6 +184,14 @@
                     </div>
                 </template>
             </div>
+
+            {{-- Scroll to top --}}
+            <button class="chat-scroll-top"
+                    x-show="showScrollTop"
+                    x-transition.opacity
+                    @click="document.getElementById('chat-messages').scrollTo({ top: 0, behavior: 'smooth' })">
+                ↑ 回到頂部
+            </button>
 
             {{-- Bottom area: quick actions + input --}}
             <div class="p-6 pt-3 stack-sm" style="border-top: 1px solid var(--border);">
