@@ -33,20 +33,24 @@ class DashboardService
     {
         $conn = $this->db->connection(TenantManager::connectionName($tenantId));
         $now = now();
+        $today = $now->toDateString();
 
         $periods = [
             'month' => [
                 $now->copy()->startOfMonth()->toDateString(),
+                $today,
                 $now->copy()->subMonth()->startOfMonth()->toDateString(),
                 $now->copy()->subMonth()->endOfMonth()->toDateString(),
             ],
             'quarter' => [
                 $now->copy()->startOfQuarter()->toDateString(),
+                $today,
                 $now->copy()->subQuarter()->startOfQuarter()->toDateString(),
                 $now->copy()->subQuarter()->endOfQuarter()->toDateString(),
             ],
             'year' => [
                 $now->copy()->startOfYear()->toDateString(),
+                $today,
                 $now->copy()->subYear()->startOfYear()->toDateString(),
                 $now->copy()->subYear()->endOfYear()->toDateString(),
             ],
@@ -67,11 +71,11 @@ class DashboardService
     {
         $orders = $conn->table('orders')->whereNotIn('status', ['cancelled', 'refunded']);
 
-        return $this->forEachPeriod($periods, function (string $label, string $curStart, string $prevStart, string $prevEnd) use ($orders) {
-            $curRevenue = (float) $orders->clone()->where('order_date', '>=', $curStart)->sum('total_amount');
+        return $this->forEachPeriod($periods, function (string $label, string $curStart, string $curEnd, string $prevStart, string $prevEnd) use ($orders) {
+            $curRevenue = (float) $orders->clone()->whereBetween('order_date', [$curStart, $curEnd])->sum('total_amount');
             $prevRevenue = (float) $orders->clone()->whereBetween('order_date', [$prevStart, $prevEnd])->sum('total_amount');
 
-            $curCount = $orders->clone()->where('order_date', '>=', $curStart)->count();
+            $curCount = $orders->clone()->whereBetween('order_date', [$curStart, $curEnd])->count();
             $prevCount = $orders->clone()->whereBetween('order_date', [$prevStart, $prevEnd])->count();
 
             $avgTicket = $curCount > 0 ? round($curRevenue / $curCount) : 0;
@@ -91,21 +95,21 @@ class DashboardService
      */
     private function financeMetrics(Connection $conn, array $periods): array
     {
-        return $this->forEachPeriod($periods, function (string $label, string $curStart, string $prevStart, string $prevEnd) use ($conn) {
-            $curAr = (float) $conn->table('accounts_receivable')->where('created_at', '>=', $curStart)->sum('amount');
+        return $this->forEachPeriod($periods, function (string $label, string $curStart, string $curEnd, string $prevStart, string $prevEnd) use ($conn) {
+            $curAr = (float) $conn->table('accounts_receivable')->whereBetween('created_at', [$curStart, $curEnd])->sum('amount');
             $prevAr = (float) $conn->table('accounts_receivable')->whereBetween('created_at', [$prevStart, $prevEnd])->sum('amount');
 
             $curOverdue = (float) $conn->table('accounts_receivable')
-                ->where('status', 'overdue')->where('due_date', '>=', $curStart)
+                ->where('status', 'overdue')->whereBetween('due_date', [$curStart, $curEnd])
                 ->selectRaw('COALESCE(SUM(amount - paid_amount), 0) as v')->value('v');
             $prevOverdue = (float) $conn->table('accounts_receivable')
                 ->where('status', 'overdue')->whereBetween('due_date', [$prevStart, $prevEnd])
                 ->selectRaw('COALESCE(SUM(amount - paid_amount), 0) as v')->value('v');
 
-            $curExpense = (float) $conn->table('expenses')->where('expense_date', '>=', $curStart)->sum('amount');
+            $curExpense = (float) $conn->table('expenses')->whereBetween('expense_date', [$curStart, $curEnd])->sum('amount');
             $prevExpense = (float) $conn->table('expenses')->whereBetween('expense_date', [$prevStart, $prevEnd])->sum('amount');
 
-            $curPayment = (float) $conn->table('payments')->where('payment_date', '>=', $curStart)->sum('amount');
+            $curPayment = (float) $conn->table('payments')->whereBetween('payment_date', [$curStart, $curEnd])->sum('amount');
             $prevPayment = (float) $conn->table('payments')->whereBetween('payment_date', [$prevStart, $prevEnd])->sum('amount');
 
             return [
@@ -125,14 +129,14 @@ class DashboardService
     {
         $lowStock = $conn->table('inventory')->whereColumn('quantity', '<', 'min_quantity')->count();
 
-        return $this->forEachPeriod($periods, function (string $label, string $curStart, string $prevStart, string $prevEnd) use ($conn, $lowStock) {
-            $curCustomers = $conn->table('customers')->where('created_at', '>=', $curStart)->count();
+        return $this->forEachPeriod($periods, function (string $label, string $curStart, string $curEnd, string $prevStart, string $prevEnd) use ($conn, $lowStock) {
+            $curCustomers = $conn->table('customers')->whereBetween('created_at', [$curStart, $curEnd])->count();
             $prevCustomers = $conn->table('customers')->whereBetween('created_at', [$prevStart, $prevEnd])->count();
 
-            $curProducts = $conn->table('products')->where('is_active', 1)->where('created_at', '>=', $curStart)->count();
+            $curProducts = $conn->table('products')->where('is_active', 1)->whereBetween('created_at', [$curStart, $curEnd])->count();
             $prevProducts = $conn->table('products')->where('is_active', 1)->whereBetween('created_at', [$prevStart, $prevEnd])->count();
 
-            $curPo = $conn->table('purchase_orders')->where('order_date', '>=', $curStart)->count();
+            $curPo = $conn->table('purchase_orders')->whereBetween('order_date', [$curStart, $curEnd])->count();
             $prevPo = $conn->table('purchase_orders')->whereBetween('order_date', [$prevStart, $prevEnd])->count();
 
             return [
@@ -152,8 +156,8 @@ class DashboardService
         $results = [];
 
         foreach (self::PERIOD_LABELS as $key => $label) {
-            [$curStart, $prevStart, $prevEnd] = $periods[$key];
-            array_push($results, ...$callback($label, $curStart, $prevStart, $prevEnd));
+            [$curStart, $curEnd, $prevStart, $prevEnd] = $periods[$key];
+            array_push($results, ...$callback($label, $curStart, $curEnd, $prevStart, $prevEnd));
         }
 
         return $results;
