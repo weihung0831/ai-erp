@@ -13,6 +13,7 @@ use App\Services\Schema\SchemaIntrospector;
 use App\Services\Tenant\TenantQueryExecutor;
 use App\Support\CurrencyFormatter;
 use App\Support\NumberFormatter;
+use JsonException;
 use Psr\Log\LoggerInterface;
 use Throwable;
 
@@ -80,8 +81,112 @@ final class QueryEngine
             return $this->errorResult('系統忙碌，請稍後再試');
         }
 
+        return $this->dispatchResponse($response, $input, $schema);
+    }
+
+    /**
+     * 串流版 handle。回傳 Generator 逐步 yield SSE 事件。
+     *
+     * 事件格式：['event' => string, 'data' => mixed]
+     *   - thinking: LLM 開始處理
+     *   - text:     文字 delta（clarification / 閒聊）
+     *   - result:   最終結構化結果（同 /api/chat JSON 格式）
+     *
+     * Generator return value 為 ChatQueryResult，供 controller 存 turn 用。
+     * 用法：foreach ($gen as $evt) {...}; $result = $gen->getReturn();
+     *
+     * @return \Generator<int, array{event: string, data: mixed}, mixed, ChatQueryResult>
+     */
+    public function handleStream(ChatQueryInput $input): \Generator
+    {
+        try {
+            $schema = $this->introspector->introspect($input->tenantId);
+        } catch (Throwable $e) {
+            $this->logger->warning('QueryEngine: schema introspection failed', ['exception' => $e]);
+            $result = $this->errorResult('無法載入資料庫結構，請聯繫管理員');
+            yield ['event' => 'result', 'data' => $result->toArray()];
+
+            return $result;
+        }
+
+        yield ['event' => 'thinking', 'data' => (object) []];
+
+        // 串流 LLM 回應，邊收邊 yield text delta
+        $textContent = '';
+        $functionName = null;
+        $argumentsJson = '';
+        $tokensUsed = 0;
+
+        try {
+            $stream = $this->llm->streamChat(
+                messages: $this->buildMessages($input, $schema),
+                functions: self::functionSchemas(),
+            );
+
+            foreach ($stream as $chunk) {
+                if ($chunk->textDelta !== null) {
+                    $textContent .= $chunk->textDelta;
+                    yield ['event' => 'text', 'data' => ['delta' => $chunk->textDelta]];
+                }
+                if ($chunk->functionName !== null) {
+                    $functionName = $chunk->functionName;
+                }
+                if ($chunk->argumentsDelta !== null) {
+                    $argumentsJson .= $chunk->argumentsDelta;
+                }
+                if ($chunk->isFinished) {
+                    $tokensUsed = $chunk->tokensUsed;
+                }
+            }
+        } catch (Throwable $e) {
+            $this->logger->warning('QueryEngine: LLM stream failed', ['exception' => $e]);
+            $result = $this->errorResult('系統忙碌，請稍後再試');
+            yield ['event' => 'result', 'data' => $result->toArray()];
+
+            return $result;
+        }
+
+        // 從累積的 chunks 組裝 LlmResponse，後續走同步 pipeline
+        if ($functionName !== null) {
+            try {
+                $arguments = json_decode($argumentsJson, associative: true, flags: JSON_THROW_ON_ERROR);
+            } catch (JsonException) {
+                $result = $this->errorResult('AI 回應格式錯誤，請重試');
+                yield ['event' => 'result', 'data' => $result->toArray()];
+
+                return $result;
+            }
+
+            $response = new LlmResponse(
+                functionName: $functionName,
+                functionArguments: is_array($arguments) ? $arguments : [],
+                content: null,
+                tokensUsed: $tokensUsed,
+            );
+        } else {
+            $response = new LlmResponse(
+                functionName: null,
+                functionArguments: [],
+                content: $textContent !== '' ? $textContent : null,
+                tokensUsed: $tokensUsed,
+            );
+        }
+
+        $result = $this->dispatchResponse($response, $input, $schema);
+        yield ['event' => 'result', 'data' => $result->toArray()];
+
+        return $result;
+    }
+
+    /**
+     * LLM 回應後的統一分流：text → Clarification、function call → validate + execute。
+     *
+     * handle() 和 handleStream() 共用這段邏輯，避免信心度門檻、restricted 欄位規則、
+     * function dispatch 等商業邏輯在兩處平行維護。
+     */
+    private function dispatchResponse(LlmResponse $response, ChatQueryInput $input, SchemaContext $schema): ChatQueryResult
+    {
         if (! $response->hasFunctionCall()) {
-            // LLM 選擇用文字回應——閒聊、拒絕寫入類、或要求釐清。
             return new ChatQueryResult(
                 reply: $response->content ?? '我不太理解您的問題，可以換個方式描述嗎？',
                 confidence: 0.0,

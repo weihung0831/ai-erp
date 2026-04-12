@@ -6,9 +6,17 @@
 
 ## 專案狀態
 
-**Phase 1 實作中。** Laravel 13 + Sanctum 已 scaffold，[00 元件庫](docs/spec/00-component-library.md) 定義的 42 個 Blade Component 已全數實作在 `resources/views/components/{namespace}/`，dev server 啟動後可在 **`/components`** 看到完整展示頁。
+**Phase 1 後端完成，前端整合中。** Laravel 13 + Sanctum 已 scaffold、42 個 Blade Component 已全數實作、Chat-to-query 後端 pipeline（LLM → SQL 生成 → 執行 → 回傳）已端到端跑通。
 
-**尚未建立：** `Controllers/Api/`、`app/Services/`（Query Engine、Build Engine、LLM Gateway、TenantManager）、聊天／查詢持久化的 migration，以及 Phase 1 聊天頁面。實作順序依 [CLAUDE.md](CLAUDE.md) 列出的 spec。
+已建立：
+- `Controllers/Api/` — Auth、Chat、StreamChat（SSE）、ChatHistory、QuickAction、Admin（QueryLog、SchemaField）
+- `Services/` — QueryEngine、OpenAiGateway、SqlValidator、ConfidenceEstimator、TenantManager、TenantDatabaseManager
+- `Models/` — ChatHistory、Conversation、QueryLog、QuickAction、SchemaFieldRestriction、Tenant、User
+- `Repositories/` — Contract + Eloquent 實作（Repository Pattern）
+- DB-per-tenant 含 15 個 tenant migrations + demo seeder
+- Event-driven query logging、Golden accuracy test suite（150 筆案例）
+
+**尚未建立：** Phase 1 聊天 UI 頁面、Phase 2 Build Engine、Phase 3 SaaS 模組。
 
 ## 這是什麼？
 
@@ -27,7 +35,7 @@
 |------|------|
 | Backend | PHP + Laravel（API-first，回傳 JSON） |
 | Database | MySQL（DB-per-tenant 多租戶隔離） |
-| AI | OpenAI GPT-4o + function calling |
+| AI | Apertis（OpenAI-compatible）+ gpt-4.1-mini + function calling |
 | Frontend | Blade + Alpine.js + Axios |
 | UI 設計 | [Claude DESIGN.md](DESIGN.md) |
 | Auth | Laravel Sanctum（API token） |
@@ -35,7 +43,7 @@
 
 ## 架構
 
-- **API-first** — `Controllers/Api/`（尚未建立，Phase 1 實作時新增）回傳 JSON；`Controllers/Web/` 回傳 Blade view，透過 Axios 呼叫 `/api/*`
+- **API-first** — `Controllers/Api/` 回傳 JSON；`Controllers/Web/` 回傳 Blade view，透過 Axios 呼叫 `/api/*`
 - **DB-per-tenant** — 每個客戶獨立 MySQL DB
 - **Blade 元件化** — 所有 UI 用巢狀命名空間元件（`<x-chat.bubble>`、`<x-data.table>` 等）。42 個元件庫已全部完成，可在 `/components` 預覽
 
@@ -63,7 +71,7 @@
 - Node.js 20+（Vite / Tailwind v4 需要）
 - MySQL 8+
 - Redis（需支援 tag，Phase 1 用於 LLM 回應快取）
-- OpenAI API key（GPT-4o，Phase 1 聊天功能需要）
+- OpenAI-compatible API key（預設：Apertis + gpt-4.1-mini，Phase 1 聊天功能需要）
 
 ### 安裝
 
@@ -77,6 +85,7 @@ npm install
 cp .env.example .env
 php artisan key:generate
 php artisan migrate
+php artisan db:seed --class=DemoSeeder   # 建立示範租戶 + 範例資料
 npm run build
 ```
 
@@ -95,12 +104,14 @@ php artisan serve
 ### 常用指令
 
 ```bash
-composer run test                # phpunit 測試
+composer run test                # PHPUnit 測試
 ./vendor/bin/pint --test         # lint 檢查
 ./vendor/bin/pint                # lint 自動修
 npm run build                    # 前端 production build
 npm run dev                      # Vite watch mode
 php artisan view:clear           # 清 Blade 編譯快取
+php artisan golden:run           # LLM 準確度測試（150 筆，打真實 API）
+php artisan golden:run --limit=10  # 快速煙霧測試
 ```
 
 ### 開始寫程式前先讀

@@ -22,4 +22,16 @@ interface LlmGateway
      * @param  list<array{name: string, description: string, parameters: array<string, mixed>}>  $functions  function 定義清單，空陣列代表純 text 回覆
      */
     public function chat(array $messages, array $functions = []): LlmResponse;
+
+    /**
+     * 串流版 chat。回傳 Generator，每次 yield 一個 LlmStreamChunk。
+     *
+     * 使用端 iterate generator 即可逐步取得 text delta 或 function call 片段。
+     * Generator 結束後不帶 return value——完整的 LlmResponse 由呼叫端自行組裝。
+     *
+     * @param  list<array{role: string, content: string}>  $messages
+     * @param  list<array{name: string, description: string, parameters: array<string, mixed>}>  $functions
+     * @return \Generator<int, LlmStreamChunk>
+     */
+    public function streamChat(array $messages, array $functions = []): \Generator;
 }

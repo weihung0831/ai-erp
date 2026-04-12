@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ChatController;
 use App\Http\Controllers\Api\ChatHistoryController;
 use App\Http\Controllers\Api\QuickActionController;
+use App\Http\Controllers\Api\StreamChatController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login'])->name('api.login');
@@ -20,6 +21,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
 
     Route::middleware('tenant')->group(function (): void {
         Route::post('/chat', [ChatController::class, 'handle'])->name('api.chat');
+        Route::post('/chat/stream', [StreamChatController::class, 'handle'])->name('api.chat.stream');
         Route::get('/chat/history', [ChatHistoryController::class, 'index'])->name('api.chat.history');
         Route::get('/chat/history/{conversationUuid}', [ChatHistoryController::class, 'show'])->name('api.chat.history.show');
         Route::get('/quick-actions', [QuickActionController::class, 'index'])->name('api.quick-actions');

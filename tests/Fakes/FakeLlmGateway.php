@@ -4,6 +4,7 @@ namespace Tests\Fakes;
 
 use App\Services\Ai\LlmGateway;
 use App\Services\Ai\LlmResponse;
+use App\Services\Ai\LlmStreamChunk;
 use Throwable;
 
 /**
@@ -53,6 +54,56 @@ final class FakeLlmGateway implements LlmGateway
 
     public function chat(array $messages, array $functions = []): LlmResponse
     {
+        return $this->dequeueResponse($messages, $functions);
+    }
+
+    /**
+     * 串流版 fake：把 queued response 拆成 LlmStreamChunk 逐一 yield。
+     *
+     * function call → yield functionName chunk + arguments chunk + finished chunk
+     * text content  → yield 逐字 text delta + finished chunk
+     *
+     * @return \Generator<int, LlmStreamChunk>
+     */
+    public function streamChat(array $messages, array $functions = []): \Generator
+    {
+        $response = $this->dequeueResponse($messages, $functions);
+
+        if ($response->hasFunctionCall()) {
+            yield new LlmStreamChunk(
+                functionName: $response->functionName,
+                argumentsDelta: '',
+            );
+
+            $json = json_encode($response->functionArguments, JSON_THROW_ON_ERROR);
+            yield new LlmStreamChunk(argumentsDelta: $json);
+
+            yield new LlmStreamChunk(
+                isFinished: true,
+                finishReason: 'tool_calls',
+                tokensUsed: $response->tokensUsed,
+            );
+        } else {
+            $content = $response->content ?? '';
+            if ($content !== '') {
+                yield new LlmStreamChunk(textDelta: $content);
+            }
+
+            yield new LlmStreamChunk(
+                isFinished: true,
+                finishReason: 'stop',
+                tokensUsed: $response->tokensUsed,
+            );
+        }
+    }
+
+    public function callCount(): int
+    {
+        return count($this->calls);
+    }
+
+    private function dequeueResponse(array $messages, array $functions): LlmResponse
+    {
         $this->calls[] = ['messages' => $messages, 'functions' => $functions];
 
         if ($this->alwaysThrow !== null) {
@@ -65,11 +116,6 @@ final class FakeLlmGateway implements LlmGateway
             content: null,
             tokensUsed: 0,
         );
-    }
-
-    public function callCount(): int
-    {
-        return count($this->calls);
     }
 
     /**

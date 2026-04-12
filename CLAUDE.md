@@ -31,9 +31,22 @@ AI ERP 平台，讓客戶用對話建構和查詢 ERP 系統。團隊本身是 E
 
 ## 目前狀態
 
-**Phase 1 實作中。** Laravel 13 + Sanctum 已 scaffold、`docs/spec/00-component-library.md` 的 42 個 Blade Component 已全數實作在 `resources/views/components/{namespace}/`，showcase 頁面在 `/components`。
+**Phase 1 後端完成、前端整合中。** Laravel 13 + Sanctum 已 scaffold、42 個 Blade Component 已全數實作、Chat-to-query 後端 17 支 API 全部到位（含 SSE 串流）、Golden Test 150 筆 100% pass。
 
-**尚未建立：** `app/Http/Controllers/Api/`、`app/Services/`（Query/Build Engine、TenantManager、LlmGateway）、`app/Models/`（除 Laravel 預設）、`database/migrations/` 的 chat_histories / query_logs / subscriptions。實作新功能前先 `Glob` 確認對應目錄是否存在，不要假設 Service / Repository 已經在。
+**已建立的核心目錄：**
+- `app/Http/Controllers/Api/` — AuthController, ChatController, StreamChatController, ChatHistoryController, QuickActionController, Admin/{QueryLogController, QuickActionController, SchemaFieldController}
+- `app/Services/` — Ai/（LlmGateway, OpenAiGateway, QueryEngine, SqlValidator, ConfidenceEstimator）, Schema/, Tenant/（TenantManager, TenantDatabaseManager）
+- `app/Models/` — ChatHistory, Conversation, QueryLog, QuickAction, SchemaFieldRestriction, Tenant, User
+- `app/Repositories/` — Contracts/ + Eloquent/ 實作（Repository Pattern 已套用）
+- `app/DataTransferObjects/` — Chat/, Schema/
+- `app/Enums/` — ChatResponseType, ConfidenceLevel, UserRole, ValueFormat
+- `app/Events/QueryExecuted` + `app/Listeners/LogQueryListener`（event-driven query logging）
+- `app/Support/` — CurrencyFormatter, NumberFormatter
+- `app/Console/Commands/` — GoldenAccuracyCommand, TenantProvisionCommand
+- `app/Providers/RepositoryServiceProvider.php`
+- `database/migrations/tenant/` — 15 個 tenant-specific migrations（categories → schema_metadata）
+
+**尚未建立：** Phase 2 的 Build Engine、Phase 3 的 SaaS / subscription 相關模組。實作新功能前先 `Glob` 確認對應目錄是否存在。
 
 ## 常用指令
 
@@ -58,6 +71,13 @@ composer run test
 # 清快取（改了 Blade component 或 config 後）
 php artisan view:clear
 php artisan config:clear
+
+# Golden accuracy test（打真實 LLM API）
+php artisan golden:run --limit=10   # 快速煙霧測試
+php artisan golden:run              # 全部 150 筆
+
+# Demo 租戶 seed
+php artisan db:seed --class=DemoSeeder
 ```
 
 ## 技術棧
@@ -66,7 +86,7 @@ php artisan config:clear
 |------|------|
 | Backend | PHP + Laravel（純 API，回傳 JSON） |
 | Database | MySQL（DB-per-tenant 多租戶隔離） |
-| AI | OpenAI GPT-4o + function calling |
+| AI | Apertis（OpenAI-compatible）+ gpt-4.1-mini + function calling |
 | Frontend | Blade + Alpine.js + Axios（同一 Laravel 專案內前後端分離） |
 | UI 設計 | Claude DESIGN.md（根目錄 `DESIGN.md`） |
 | Auth | Laravel Sanctum（API token），OAuth2 未來再導入 |
@@ -74,11 +94,13 @@ php artisan config:clear
 
 ## 架構要點
 
-- **前後端分離：** `Controllers/Api/`（尚未建立，Phase 1 實作時新增）回傳 JSON 處理業務邏輯，`Controllers/Web/` 只回傳 Blade view，不碰資料庫
+- **前後端分離：** `Controllers/Api/` 回傳 JSON 處理業務邏輯，`Controllers/Web/` 只回傳 Blade view，不碰資料庫
 - **DB-per-tenant：** 每個客戶獨立 MySQL DB，主資料庫存平台運營資料
 - **API-first：** Blade 頁面透過 Axios 呼叫自己的 `/api/*` 端點
 - **Blade 元件化：** 所有 UI 用 `<x-chat.bubble>` 等巢狀命名空間的 Blade Component
 - **信心度分層：** Chat-to-query 的核心機制——高（> 95%）直接回答、中（70-95%）附提示、低（< 70%）不回答改引導釐清
+- **Event-driven logging：** `QueryExecuted` event + `LogQueryListener`，query log 不在 controller 裡寫
+- **Golden Test Suite：** `tests/Golden/GoldenQueryEngineTest.php` + `tests/Golden/Fixtures/` 用 data-driven 方式校準 QueryEngine 準確率，`php artisan golden:run` 可跑精度測試
 
 ## 設計模式
 

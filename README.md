@@ -6,9 +6,17 @@ AI-powered ERP platform that lets customers build and query ERP systems through 
 
 ## Status
 
-**Phase 1 in progress.** Laravel 13 + Sanctum is scaffolded and all 42 Blade components defined in [00 Component Library](docs/spec/00-component-library.md) are implemented under `resources/views/components/{namespace}/`. A live showcase of every component is available at **`/components`** once the dev server is running.
+**Phase 1 backend complete; frontend integration in progress.** Laravel 13 + Sanctum scaffolded, all 42 Blade components implemented, and the Chat-to-query backend pipeline (LLM → SQL generation → execution → response) is working end-to-end.
 
-Still to build: `Controllers/Api/`, `app/Services/` (Query Engine, Build Engine, LLM Gateway, TenantManager), chat/query persistence migrations, and the Phase 1 chat UI page. Implementation follows the spec order in [CLAUDE.md](CLAUDE.md).
+What's built:
+- `Controllers/Api/` — Auth, Chat, StreamChat (SSE), ChatHistory, QuickAction, Admin (QueryLog, SchemaField)
+- `Services/` — QueryEngine, OpenAiGateway, SqlValidator, ConfidenceEstimator, TenantManager, TenantDatabaseManager
+- `Models/` — ChatHistory, Conversation, QueryLog, QuickAction, SchemaFieldRestriction, Tenant, User
+- `Repositories/` — Contract + Eloquent implementation (Repository Pattern)
+- DB-per-tenant with 15 tenant migrations + demo seeder
+- Event-driven query logging, Golden accuracy test suite (150 cases)
+
+Still to build: Phase 1 chat UI page, Phase 2 Build Engine, Phase 3 SaaS modules.
 
 ## What is this?
 
@@ -27,7 +35,7 @@ An ERP development company's product: instead of hiring developers to build cust
 |-------|-----------|
 | Backend | PHP + Laravel (API-first, returns JSON) |
 | Database | MySQL (DB-per-tenant isolation) |
-| AI | OpenAI GPT-4o + function calling |
+| AI | Apertis (OpenAI-compatible) + gpt-4.1-mini + function calling |
 | Frontend | Blade + Alpine.js + Axios |
 | UI Design | [Claude DESIGN.md](DESIGN.md) |
 | Auth | Laravel Sanctum (API token) |
@@ -35,7 +43,7 @@ An ERP development company's product: instead of hiring developers to build cust
 
 ## Architecture
 
-- **API-first** — `Controllers/Api/` (not yet created; added during Phase 1) returns JSON; `Controllers/Web/` returns Blade views that make Axios calls to `/api/*`
+- **API-first** — `Controllers/Api/` returns JSON; `Controllers/Web/` returns Blade views that make Axios calls to `/api/*`
 - **DB-per-tenant** — Each customer gets an isolated MySQL database
 - **Blade components** — All UI built with namespaced components (`<x-chat.bubble>`, `<x-data.table>`, etc.). The component library (42 components) is complete and browsable at `/components`
 
@@ -63,7 +71,7 @@ An ERP development company's product: instead of hiring developers to build cust
 - Node.js 20+ (for Vite / Tailwind v4)
 - MySQL 8+
 - Redis (tag-aware) — required from Phase 1 for LLM response caching
-- OpenAI API key (GPT-4o) — required from Phase 1 for chat features
+- OpenAI-compatible API key (default: Apertis + gpt-4.1-mini) — required from Phase 1 for chat features
 
 ### Setup
 
@@ -77,6 +85,7 @@ npm install
 cp .env.example .env
 php artisan key:generate
 php artisan migrate
+php artisan db:seed --class=DemoSeeder   # provision demo tenant + sample data
 npm run build
 ```
 
@@ -95,12 +104,14 @@ Open **http://localhost:8000/components** to browse the Blade component library.
 ### Common commands
 
 ```bash
-composer run test                # phpunit tests
+composer run test                # PHPUnit tests
 ./vendor/bin/pint --test         # lint check
 ./vendor/bin/pint                # lint auto-fix
 npm run build                    # production asset build
 npm run dev                      # Vite watch mode
 php artisan view:clear           # clear compiled Blade cache
+php artisan golden:run           # LLM accuracy test (150 cases, hits real API)
+php artisan golden:run --limit=10  # quick accuracy smoke test
 ```
 
 ### Read the design first

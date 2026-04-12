@@ -6,6 +6,7 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
 use JsonException;
+use Psr\Http\Message\StreamInterface;
 use RuntimeException;
 
 /**
@@ -28,22 +29,7 @@ final class OpenAiGateway implements LlmGateway
 
     public function chat(array $messages, array $functions = []): LlmResponse
     {
-        if ($this->apiKey === '') {
-            throw new RuntimeException('OPENAI_API_KEY 未設定，無法呼叫 LLM');
-        }
-
-        $payload = [
-            'model' => $this->model,
-            'messages' => $messages,
-        ];
-
-        if ($functions !== []) {
-            $payload['tools'] = array_map(
-                static fn (array $fn): array => ['type' => 'function', 'function' => $fn],
-                $functions,
-            );
-            $payload['tool_choice'] = 'auto';
-        }
+        $payload = $this->buildPayload($messages, $functions);
 
         try {
             $response = Http::baseUrl($this->baseUrl)
@@ -69,6 +55,145 @@ final class OpenAiGateway implements LlmGateway
         }
 
         return $this->parseResponse($data);
+    }
+
+    /**
+     * @return \Generator<int, LlmStreamChunk>
+     */
+    public function streamChat(array $messages, array $functions = []): \Generator
+    {
+        $payload = $this->buildPayload($messages, $functions, stream: true);
+
+        try {
+            $response = Http::baseUrl($this->baseUrl)
+                ->withToken($this->apiKey)
+                ->timeout($this->timeoutSeconds)
+                ->asJson()
+                ->withOptions(['stream' => true])
+                ->post('/chat/completions', $payload);
+        } catch (ConnectionException $e) {
+            throw new RuntimeException('LLM 連線失敗或逾時', previous: $e);
+        }
+
+        if ($response->failed()) {
+            throw new RuntimeException(
+                "LLM API 回應錯誤 HTTP {$response->status()}：".$response->body(),
+                previous: $response->toException() instanceof RequestException ? $response->toException() : null,
+            );
+        }
+
+        yield from $this->parseSseStream($response->toPsrResponse()->getBody());
+    }
+
+    /**
+     * @param  list<array{role: string, content: string}>  $messages
+     * @param  list<array{name: string, description: string, parameters: array<string, mixed>}>  $functions
+     * @return array<string, mixed>
+     */
+    private function buildPayload(array $messages, array $functions, bool $stream = false): array
+    {
+        if ($this->apiKey === '') {
+            throw new RuntimeException('OPENAI_API_KEY 未設定，無法呼叫 LLM');
+        }
+
+        $payload = [
+            'model' => $this->model,
+            'messages' => $messages,
+        ];
+
+        if ($stream) {
+            $payload['stream'] = true;
+        }
+
+        if ($functions !== []) {
+            $payload['tools'] = array_map(
+                static fn (array $fn): array => ['type' => 'function', 'function' => $fn],
+                $functions,
+            );
+            $payload['tool_choice'] = 'auto';
+        }
+
+        return $payload;
+    }
+
+    /**
+     * @return \Generator<int, LlmStreamChunk>
+     */
+    private function parseSseStream(StreamInterface $body): \Generator
+    {
+        $buffer = '';
+
+        while (! $body->eof()) {
+            $data = $body->read(4096);
+            if ($data === '') {
+                break;
+            }
+            $buffer .= $data;
+
+            while (($pos = strpos($buffer, "\n")) !== false) {
+                $line = trim(substr($buffer, 0, $pos));
+                $buffer = substr($buffer, $pos + 1);
+
+                if ($line === '' || ! str_starts_with($line, 'data: ')) {
+                    continue;
+                }
+
+                $payload = substr($line, 6);
+                if ($payload === '[DONE]') {
+                    return;
+                }
+
+                $json = json_decode($payload, true);
+                if (! is_array($json)) {
+                    continue;
+                }
+
+                yield $this->parseStreamChunk($json);
+            }
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function parseStreamChunk(array $data): LlmStreamChunk
+    {
+        $choice = $data['choices'][0] ?? null;
+        if (! is_array($choice)) {
+            return new LlmStreamChunk;
+        }
+
+        $delta = $choice['delta'] ?? [];
+        $finishReason = $choice['finish_reason'] ?? null;
+        $tokensUsed = (int) ($data['usage']['total_tokens'] ?? 0);
+
+        $textDelta = null;
+        $functionName = null;
+        $argumentsDelta = null;
+
+        if (isset($delta['content']) && is_string($delta['content']) && $delta['content'] !== '') {
+            $textDelta = $delta['content'];
+        }
+
+        $toolCalls = $delta['tool_calls'] ?? null;
+        if (is_array($toolCalls) && $toolCalls !== []) {
+            $fn = $toolCalls[0]['function'] ?? [];
+            if (isset($fn['name']) && is_string($fn['name']) && $fn['name'] !== '') {
+                $functionName = $fn['name'];
+            }
+            if (isset($fn['arguments']) && is_string($fn['arguments'])) {
+                $argumentsDelta = $fn['arguments'];
+            }
+        }
+
+        return new LlmStreamChunk(
+            textDelta: $textDelta,
+            functionName: $functionName,
+            argumentsDelta: $argumentsDelta,
+            isFinished: is_string($finishReason),
+            finishReason: $finishReason,
+            tokensUsed: $tokensUsed,
+        );
     }
 
     /**
