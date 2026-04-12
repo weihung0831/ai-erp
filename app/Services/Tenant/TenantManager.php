@@ -103,6 +103,7 @@ class TenantManager
         $base = $this->config->get('database.connections.mysql', []);
 
         $this->config->set("database.connections.{$connectionName}", array_merge($base, [
+            'url' => null,
             'database' => $tenant->db_name,
         ]));
     }
